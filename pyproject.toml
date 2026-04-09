@@ -17,6 +17,9 @@ dependencies = [
     "pandas>=1.5",
     "scipy>=1.10",
     "contourpy>=1.0",
+    "statsmodels>=0.13",
+    "geopandas>=0.12",
+    "Pillow>=9.0",
 ]
 
 [project.optional-dependencies]
