@@ -42,6 +42,234 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
+# Break computation helpers for panel_params
+# ---------------------------------------------------------------------------
+
+
+def _compute_mapped_breaks(
+    scale: Any,
+    range_: list,
+    n: int = 5,
+) -> np.ndarray:
+    """Compute major breaks and rescale to [0, 1] NPC.
+
+    If the scale provides ``get_breaks()``, use it; otherwise fall back
+    to ``numpy.linspace``.  For discrete scales (non-numeric ranges),
+    returns an empty array.
+    """
+    # Guard against non-numeric ranges (discrete scales)
+    try:
+        r0, r1 = float(range_[0]), float(range_[1])
+    except (ValueError, TypeError):
+        return np.array([])
+
+    breaks = None
+    if scale is not None and hasattr(scale, "get_breaks"):
+        try:
+            breaks = scale.get_breaks(range_)
+        except Exception:
+            pass
+    if breaks is None or (hasattr(breaks, "__len__") and len(breaks) == 0):
+        breaks = np.linspace(r0, r1, n + 2)[1:-1]
+    try:
+        breaks = np.asarray(breaks, dtype=float)
+    except (ValueError, TypeError):
+        return np.array([])
+    breaks = breaks[np.isfinite(breaks)]
+    # Rescale to [0, 1]
+    rng = r1 - r0
+    if rng == 0:
+        return np.array([0.5] * len(breaks))
+    return (breaks - r0) / rng
+
+
+def _compute_mapped_minor_breaks(
+    scale: Any,
+    range_: list,
+    major: np.ndarray,
+    n: int = 2,
+) -> np.ndarray:
+    """Compute minor breaks in [0, 1] NPC, excluding positions that
+    coincide with major breaks."""
+    minor = None
+    if scale is not None and hasattr(scale, "get_breaks_minor"):
+        try:
+            minor = scale.get_breaks_minor(range_, n=n)
+        except Exception:
+            pass
+    if minor is None or (hasattr(minor, "__len__") and len(minor) == 0):
+        # Default: one minor break between each pair of major breaks
+        if len(major) >= 2:
+            mids = (major[:-1] + major[1:]) / 2.0
+            minor = mids
+        else:
+            return np.array([])
+    else:
+        minor = np.asarray(minor, dtype=float)
+        rng = range_[1] - range_[0]
+        if rng != 0:
+            minor = (minor - range_[0]) / rng
+    minor = minor[np.isfinite(minor)]
+    # Remove minor breaks that coincide with major breaks
+    if len(major) > 0 and len(minor) > 0:
+        keep = np.array([not np.any(np.abs(major - m) < 1e-8) for m in minor])
+        minor = minor[keep]
+    return minor
+
+
+# ---------------------------------------------------------------------------
+# guide_grid — panel background and grid lines
+# ---------------------------------------------------------------------------
+
+
+def guide_grid(
+    theme: Any,
+    panel_params: Dict[str, Any],
+    coord: Any,
+) -> Any:
+    """Render the panel background rectangle and grid lines.
+
+    Mirrors R's ``guide_grid()`` from ``guides-grid.R``.  Produces a
+    ``GTree`` containing:
+
+    1. Panel background (``panel.background`` theme element)
+    2. Minor grid lines (``panel.grid.minor.x/y``)
+    3. Major grid lines (``panel.grid.major.x/y``)
+
+    Parameters
+    ----------
+    theme : Theme
+        The plot theme.
+    panel_params : dict
+        Panel parameters (must contain ``x_major``, ``x_minor``,
+        ``y_major``, ``y_minor`` arrays in [0, 1] NPC).
+    coord : Coord
+        The coordinate system.
+
+    Returns
+    -------
+    GTree
+        A grob tree with background + grid lines.
+    """
+    from grid_py import (
+        rect_grob, polyline_grob, grob_tree,
+        null_grob, Gpar, Unit, GTree, GList,
+    )
+    from ggplot2_py.theme_elements import element_render
+
+    children = []
+
+    # 1. Panel background
+    try:
+        bg = element_render(theme, "panel.background")
+        if bg is not None:
+            children.append(bg)
+    except Exception:
+        # Fallback: white rectangle
+        children.append(rect_grob(
+            x=0.5, y=0.5, width=1.0, height=1.0,
+            gp=Gpar(fill="white", col="transparent"),
+            name="panel.background",
+        ))
+
+    x_major = panel_params.get("x_major", np.array([]))
+    x_minor = panel_params.get("x_minor", np.array([]))
+    y_major = panel_params.get("y_major", np.array([]))
+    y_minor = panel_params.get("y_minor", np.array([]))
+
+    # 2. Minor grid lines
+    # Minor Y (horizontal lines at y_minor positions)
+    if len(y_minor) > 0:
+        try:
+            grob = element_render(
+                theme, "panel.grid.minor.y",
+                x=np.tile([0.0, 1.0], len(y_minor)),
+                y=np.repeat(y_minor, 2),
+                id_lengths=[2] * len(y_minor),
+            )
+            if grob is not None:
+                children.append(grob)
+        except Exception:
+            xs = np.tile([0.0, 1.0], len(y_minor))
+            ys = np.repeat(y_minor, 2)
+            ids = np.repeat(np.arange(1, len(y_minor) + 1), 2)
+            children.append(polyline_grob(
+                x=xs, y=ys, id=ids,
+                gp=Gpar(col="grey92", lwd=0.5),
+                name="grid.minor.y",
+            ))
+
+    # Minor X (vertical lines at x_minor positions)
+    if len(x_minor) > 0:
+        try:
+            grob = element_render(
+                theme, "panel.grid.minor.x",
+                x=np.repeat(x_minor, 2),
+                y=np.tile([0.0, 1.0], len(x_minor)),
+                id_lengths=[2] * len(x_minor),
+            )
+            if grob is not None:
+                children.append(grob)
+        except Exception:
+            xs = np.repeat(x_minor, 2)
+            ys = np.tile([0.0, 1.0], len(x_minor))
+            ids = np.repeat(np.arange(1, len(x_minor) + 1), 2)
+            children.append(polyline_grob(
+                x=xs, y=ys, id=ids,
+                gp=Gpar(col="grey92", lwd=0.5),
+                name="grid.minor.x",
+            ))
+
+    # 3. Major grid lines
+    # Major Y (horizontal lines at y_major positions)
+    if len(y_major) > 0:
+        try:
+            grob = element_render(
+                theme, "panel.grid.major.y",
+                x=np.tile([0.0, 1.0], len(y_major)),
+                y=np.repeat(y_major, 2),
+                id_lengths=[2] * len(y_major),
+            )
+            if grob is not None:
+                children.append(grob)
+        except Exception:
+            xs = np.tile([0.0, 1.0], len(y_major))
+            ys = np.repeat(y_major, 2)
+            ids = np.repeat(np.arange(1, len(y_major) + 1), 2)
+            children.append(polyline_grob(
+                x=xs, y=ys, id=ids,
+                gp=Gpar(col="white", lwd=1.0),
+                name="grid.major.y",
+            ))
+
+    # Major X (vertical lines at x_major positions)
+    if len(x_major) > 0:
+        try:
+            grob = element_render(
+                theme, "panel.grid.major.x",
+                x=np.repeat(x_major, 2),
+                y=np.tile([0.0, 1.0], len(x_major)),
+                id_lengths=[2] * len(x_major),
+            )
+            if grob is not None:
+                children.append(grob)
+        except Exception:
+            xs = np.repeat(x_major, 2)
+            ys = np.tile([0.0, 1.0], len(x_major))
+            ids = np.repeat(np.arange(1, len(x_major) + 1), 2)
+            children.append(polyline_grob(
+                x=xs, y=ys, id=ids,
+                gp=Gpar(col="white", lwd=1.0),
+                name="grid.major.x",
+            ))
+
+    if not children:
+        return null_grob()
+
+    return grob_tree(*children, name="grill")
+
+
+# ---------------------------------------------------------------------------
 # Utility helpers
 # ---------------------------------------------------------------------------
 
@@ -641,6 +869,9 @@ class CoordCartesian(Coord):
     ) -> Dict[str, Any]:
         """Build panel parameters from scales.
 
+        Extracts limits and computes breaks/minor breaks so that
+        ``render_bg`` can draw grid lines.
+
         Parameters
         ----------
         scale_x, scale_y : Scale
@@ -651,7 +882,6 @@ class CoordCartesian(Coord):
         dict
         """
         params = params or {}
-        # Simple implementation: extract limits from scales
         x_limits = self.limits.get("x")
         y_limits = self.limits.get("y")
 
@@ -671,28 +901,31 @@ class CoordCartesian(Coord):
         if y_limits is not None:
             y_range = list(y_limits)
 
+        # Compute breaks and rescale to [0, 1] NPC for grid lines
+        x_major = _compute_mapped_breaks(scale_x, x_range)
+        x_minor = _compute_mapped_minor_breaks(scale_x, x_range, x_major)
+        y_major = _compute_mapped_breaks(scale_y, y_range)
+        y_minor = _compute_mapped_minor_breaks(scale_y, y_range, y_major)
+
         return {
             "x_range": x_range,
             "y_range": y_range,
             "x.range": x_range,
             "y.range": y_range,
+            "x_major": x_major,
+            "x_minor": x_minor,
+            "y_major": y_major,
+            "y_minor": y_minor,
             "reverse": getattr(self, "reverse", "none"),
         }
 
     def render_bg(self, panel_params: Dict[str, Any], theme: Any) -> Any:
         """Render panel background (grid lines, background fill).
 
-        Parameters
-        ----------
-        panel_params : dict
-        theme : Theme
-
-        Returns
-        -------
-        grob
+        Mirrors R's ``CoordCartesian$render_bg`` which delegates to
+        ``guide_grid()``.
         """
-        from grid_py import null_grob
-        return null_grob()
+        return guide_grid(theme, panel_params, self)
 
     def render_axis_h(self, panel_params: Dict[str, Any], theme: Any) -> Dict[str, Any]:
         from grid_py import null_grob
@@ -944,8 +1177,7 @@ class CoordPolar(Coord):
         return data
 
     def render_bg(self, panel_params: Dict[str, Any], theme: Any) -> Any:
-        from grid_py import null_grob
-        return null_grob()
+        return guide_grid(theme, panel_params, self)
 
     def render_axis_h(self, panel_params: Dict[str, Any], theme: Any) -> Dict[str, Any]:
         from grid_py import null_grob
@@ -1113,8 +1345,7 @@ class CoordRadial(Coord):
         return data
 
     def render_bg(self, panel_params: Dict[str, Any], theme: Any) -> Any:
-        from grid_py import null_grob
-        return null_grob()
+        return guide_grid(theme, panel_params, self)
 
     def render_axis_h(self, panel_params: Dict[str, Any], theme: Any) -> Dict[str, Any]:
         from grid_py import null_grob
@@ -1318,8 +1549,7 @@ class CoordTransform(Coord):
         }
 
     def render_bg(self, panel_params: Dict[str, Any], theme: Any) -> Any:
-        from grid_py import null_grob
-        return null_grob()
+        return guide_grid(theme, panel_params, self)
 
 
 # Alias for backward compatibility
