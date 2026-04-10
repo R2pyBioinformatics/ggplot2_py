@@ -1292,6 +1292,16 @@ def element_grob(element: Element, **kwargs: Any) -> Any:
     if isinstance(element, ElementText):
         return _grob_from_text(element, **kwargs)
 
+    if isinstance(element, ElementPoint):
+        return _grob_from_point(element, **kwargs)
+
+    if isinstance(element, ElementPolygon):
+        return _grob_from_polygon(element, **kwargs)
+
+    if isinstance(element, ElementGeom):
+        # ElementGeom defines global defaults; not directly rendered.
+        return null_grob()
+
     # Fallback
     return null_grob()
 
@@ -1371,6 +1381,62 @@ def _grob_from_text(
     vj = vjust if vjust is not None else element.vjust
     ang = angle if angle is not None else element.angle
     return text_grob(label=label, x=x, y=y, hjust=hj, vjust=vj, rot=ang, gp=gp, **kwargs)
+
+
+def _grob_from_point(
+    element: "ElementPoint",
+    x: float = 0.5,
+    y: float = 0.5,
+    colour: Optional[str] = None,
+    shape: Optional[int] = None,
+    fill: Optional[str] = None,
+    size: Optional[float] = None,
+    stroke: Optional[float] = None,
+    **kwargs: Any,
+) -> Any:
+    """Render an ``ElementPoint`` as a points grob.
+
+    Mirrors R's ``element_grob(element_point, ...)``.
+    """
+    from grid_py import points_grob, Gpar
+    col = colour or element.colour or "black"
+    sh = shape if shape is not None else (element.shape if element.shape is not None else 19)
+    fl = fill or element.fill
+    sz = size if size is not None else (element.size if element.size is not None else 1.5)
+    st = stroke if stroke is not None else (element.stroke if element.stroke is not None else 0.5)
+    gp = Gpar(col=col, fill=fl, fontsize=float(sz) * 2.83)  # size → pt approx
+    try:
+        return points_grob(x=x, y=y, pch=int(sh), gp=gp, **kwargs)
+    except Exception:
+        # points_grob may not exist; fallback to a circle_grob or null
+        from grid_py import null_grob
+        return null_grob()
+
+
+def _grob_from_polygon(
+    element: "ElementPolygon",
+    x=None, y=None,
+    fill: Optional[str] = None,
+    colour: Optional[str] = None,
+    linewidth: Optional[float] = None,
+    linetype: Optional[int] = None,
+    **kwargs: Any,
+) -> Any:
+    """Render an ``ElementPolygon`` as a path grob.
+
+    Mirrors R's ``element_grob(element_polygon, ...)``.
+    """
+    from grid_py import polygon_grob, Gpar
+    if x is None:
+        x = [0, 0.5, 1, 0.5]
+    if y is None:
+        y = [0.5, 1, 0.5, 0]
+    fl = fill or element.fill or "grey20"
+    col = colour or element.colour
+    lwd = linewidth if linewidth is not None else (element.linewidth if element.linewidth is not None else 0.5)
+    lty = linetype if linetype is not None else (element.linetype if element.linetype is not None else 1)
+    gp = Gpar(fill=fl, col=col, lwd=float(lwd) * (96 / 72), lty=lty)
+    return polygon_grob(x=x, y=y, gp=gp, **kwargs)
 
 
 def element_render(theme: Any, element_name: str, name: Optional[str] = None, **kwargs: Any) -> Any:
@@ -1723,12 +1789,24 @@ def calc_element(
     # Get element tree
     element_tree = get_element_tree()
 
-    # Validate class if defined and not None
+    # Validate element class against tree definition (R: check_element)
     tree_entry = element_tree.get(element)
     if tree_entry is None:
         if verbose:
             print("(not in element tree)")
         return el_out
+
+    if el_out is not None and not isinstance(el_out, ElementBlank):
+        expected_class = tree_entry.get("class")
+        if expected_class is not None and isinstance(expected_class, type):
+            if not isinstance(el_out, (expected_class, ElementBlank)):
+                import warnings
+                warnings.warn(
+                    f"Theme element '{element}' must be a "
+                    f"{expected_class.__name__} object, "
+                    f"got {type(el_out).__name__}.",
+                    stacklevel=3,
+                )
 
     # Get parent names
     pnames = tree_entry.get("inherit")
