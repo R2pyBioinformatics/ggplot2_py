@@ -479,6 +479,9 @@ def _pos_dodge(
 ) -> pd.DataFrame:
     """Core dodge algorithm.
 
+    Mirrors R's ``pos_dodge`` used via ``collide()``, which splits the
+    data by x-position and dodges elements at each position independently.
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -493,28 +496,35 @@ def _pos_dodge(
     if "group" not in df.columns:
         return df
 
-    if n is None:
-        n = df["group"].nunique()
-    if n <= 1:
-        return df
-
     if "xmin" not in df.columns or "xmax" not in df.columns:
         df["xmin"] = df["x"]
         df["xmax"] = df["x"]
 
-    d_width = float((df["xmax"] - df["xmin"]).max())
-    if width is None:
-        width = d_width
+    # R's collide() splits by xmin and dodges within each position.
+    df["_x_pos"] = df["xmin"].round(6)
 
-    # Map groups to 0..n-1
-    unique_groups = np.sort(df["group"].unique())
-    group_map = {g: i for i, g in enumerate(unique_groups)}
-    group_idx = df["group"].map(group_map).values
+    parts = []
+    for _, pos_group in df.groupby("_x_pos", sort=False, observed=True):
+        pos_group = pos_group.copy()
+        local_n = n if n is not None else pos_group["group"].nunique()
+        if local_n <= 1:
+            parts.append(pos_group)
+            continue
 
-    df["x"] = df["x"].values + width * ((group_idx + 0.5) / n - 0.5)
-    df["xmin"] = df["x"] - d_width / n / 2
-    df["xmax"] = df["x"] + d_width / n / 2
+        d_width = float((pos_group["xmax"] - pos_group["xmin"]).max())
+        local_width = width if width is not None else d_width
 
+        unique_groups = np.sort(pos_group["group"].unique())
+        group_map = {g: i for i, g in enumerate(unique_groups)}
+        group_idx = pos_group["group"].map(group_map).values
+
+        pos_group["x"] = pos_group["x"].values + local_width * ((group_idx + 0.5) / local_n - 0.5)
+        pos_group["xmin"] = pos_group["x"] - d_width / local_n / 2
+        pos_group["xmax"] = pos_group["x"] + d_width / local_n / 2
+        parts.append(pos_group)
+
+    df = pd.concat(parts, ignore_index=False)
+    df.drop(columns=["_x_pos"], inplace=True, errors="ignore")
     return df
 
 
@@ -539,11 +549,14 @@ class PositionDodge2(PositionDodge):
     def setup_params(self, data: pd.DataFrame) -> Dict[str, Any]:
         n = None
         if self.preserve == "single":
-            if "x" in data.columns:
-                groups = data.groupby(["PANEL", "x"]).ngroups
+            # R semantics: n = max number of unique groups at any single
+            # (PANEL, x) position.  For a simple boxplot without fill,
+            # there is 1 group per x, so n=1 → no dodging.
+            if "x" in data.columns and "group" in data.columns:
+                n = int(data.groupby(["PANEL", "x"], observed=True)["group"]
+                        .nunique().max())
             else:
-                groups = 1
-            n = int(groups) if groups else None
+                n = 1
 
         return {
             "width": self.width,
@@ -576,11 +589,16 @@ def _pos_dodge2(
 ) -> pd.DataFrame:
     """Core dodge2 algorithm.
 
+    Mirrors R's ``pos_dodge2`` which uses ``collide()`` to dodge
+    elements sharing the same x position independently of elements at
+    other positions.
+
     Parameters
     ----------
     df : pd.DataFrame
     width : float or None
     n : int or None
+        Maximum number of groups to dodge within each x position.
     padding : float
 
     Returns
@@ -595,37 +613,50 @@ def _pos_dodge2(
         else:
             return df
 
-    # Find overlapping groups
-    if n is None and "group" in df.columns:
-        n = df["group"].nunique()
-
-    if n is None or n <= 1:
-        return df
-
-    original_width = df["xmax"] - df["xmin"]
-    new_width = original_width / n
-
-    if "group" in df.columns:
-        unique_groups = np.sort(df["group"].unique())
-        group_map = {g: i for i, g in enumerate(unique_groups)}
-        group_idx = df["group"].map(group_map).values
-    else:
-        group_idx = np.zeros(len(df), dtype=int)
-
+    # R's collide() splits data by x-position and dodges within each.
+    # Group rows that share the same (rounded) x center so that only
+    # elements at the same position are dodged against each other.
     center = (df["xmin"] + df["xmax"]) / 2
-    total_width = new_width * n
-    start = center - total_width / 2
+    # Use rounded center to find co-located elements
+    df["_x_pos"] = center.round(6)
 
-    df["xmin"] = start + group_idx * new_width
-    df["xmax"] = df["xmin"] + new_width
-    df["x"] = (df["xmin"] + df["xmax"]) / 2
+    parts = []
+    for _, pos_group in df.groupby("_x_pos", sort=False, observed=True):
+        pos_group = pos_group.copy()
+        local_n = n
+        if local_n is None and "group" in pos_group.columns:
+            local_n = pos_group["group"].nunique()
+        if local_n is None or local_n <= 1:
+            parts.append(pos_group)
+            continue
 
-    # Apply padding
-    if padding > 0:
-        pad_width = new_width * (1 - padding)
-        df["xmin"] = df["x"] - pad_width / 2
-        df["xmax"] = df["x"] + pad_width / 2
+        original_width = pos_group["xmax"] - pos_group["xmin"]
+        new_width = original_width / local_n
 
+        if "group" in pos_group.columns:
+            unique_groups = np.sort(pos_group["group"].unique())
+            group_map = {g: i for i, g in enumerate(unique_groups)}
+            group_idx = pos_group["group"].map(group_map).values
+        else:
+            group_idx = np.zeros(len(pos_group), dtype=int)
+
+        pos_center = (pos_group["xmin"] + pos_group["xmax"]) / 2
+        total_width = new_width * local_n
+        start = pos_center - total_width / 2
+
+        pos_group["xmin"] = start + group_idx * new_width
+        pos_group["xmax"] = pos_group["xmin"] + new_width
+        pos_group["x"] = (pos_group["xmin"] + pos_group["xmax"]) / 2
+
+        if padding > 0:
+            pad_width = new_width * (1 - padding)
+            pos_group["xmin"] = pos_group["x"] - pad_width / 2
+            pos_group["xmax"] = pos_group["x"] + pad_width / 2
+
+        parts.append(pos_group)
+
+    df = pd.concat(parts, ignore_index=False)
+    df.drop(columns=["_x_pos"], inplace=True, errors="ignore")
     return df
 
 
