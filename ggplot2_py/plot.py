@@ -162,7 +162,7 @@ class GGPlot:
         self.coordinates: Any = None  # filled lazily via default
         self.facet: Any = None  # filled lazily via default
         self.labels: Labels = Labels()
-        self.guides: Any = None  # filled lazily
+        self.guides: Any = None
         self.plot_env: Any = plot_env
         self.layout: Any = None  # Layout class reference
         self._meta: Dict[str, Any] = {}
@@ -688,12 +688,8 @@ def ggplot_gtable(data: BuiltGGPlot) -> Any:
     # Render panels via layout
     plot_table = layout.render(geom_grobs, layer_data, theme, labels)
 
-    # Legends
-    if plot.guides is not None and hasattr(plot.guides, "assemble"):
-        legend_box = plot.guides.assemble(theme)
-        if legend_box is not None:
-            # TODO: table_add_legends
-            pass
+    # Legends — build directly from trained non-position scales.
+    plot_table = _table_add_legends(plot_table, plot.scales, labels, theme)
 
     # Title / subtitle / caption / tag annotations
     plot_table = _table_add_titles(plot_table, labels, theme)
@@ -703,6 +699,164 @@ def ggplot_gtable(data: BuiltGGPlot) -> Any:
         plot_table._alt_label = labels.get("alt", "")
 
     return plot_table
+
+
+def _table_add_legends(
+    table: Any, scales_list: Any, labels: Dict[str, Any], theme: Any,
+) -> Any:
+    """Build legends from trained non-position scales and add to the gtable.
+
+    Mirrors R's ``table_add_legends`` in ``plot-render.R``.  For each
+    non-position scale that has breaks, a simple legend grob (key squares
+    + labels) is built and placed in a new column on the right.
+
+    Parameters
+    ----------
+    table : gtable
+    scales_list : ScalesList
+    labels : dict
+    theme : Theme
+
+    Returns
+    -------
+    gtable
+    """
+    if not hasattr(table, "_widths"):
+        return table
+
+    from gtable_py import gtable_add_grob, gtable_add_cols
+    from grid_py import (
+        Unit as unit, text_grob, rect_grob, Gpar,
+    )
+    from grid_py._grob import grob_tree, GList, GTree
+
+    # Collect legend entries from non-position scales
+    entries: List[Dict[str, Any]] = []
+    np_scales = scales_list.non_position_scales() if hasattr(scales_list, "non_position_scales") else None
+    if np_scales is None or np_scales.n() == 0:
+        return table
+
+    for sc in np_scales.scales:
+        aes_name = sc.aesthetics[0] if sc.aesthetics else "unknown"
+        # Get breaks and labels
+        try:
+            breaks = sc.get_breaks()
+        except Exception:
+            continue
+        if breaks is None or len(breaks) == 0:
+            continue
+        try:
+            mapped = sc.map(breaks)
+        except Exception:
+            mapped = breaks
+
+        try:
+            labs = sc.get_labels(breaks)
+        except Exception:
+            labs = [str(b) for b in breaks]
+
+        # Title from plot labels or scale name
+        title = labels.get(aes_name, aes_name)
+        if hasattr(title, "__class__") and title.__class__.__name__ == "Waiver":
+            title = aes_name
+
+        entries.append({
+            "aesthetic": aes_name,
+            "breaks": breaks,
+            "mapped": mapped,
+            "labels": labs,
+            "title": str(title),
+        })
+
+    if not entries:
+        return table
+
+    # Build legend grob: for each entry, create key + label pairs.
+    # R places legends in a dedicated column on the right.
+    legend_children = []
+    y_pos = 0.95  # start near top
+    spacing = 0.0  # accumulated vertical offset
+
+    for entry in entries:
+        aes = entry["aesthetic"]
+        n = len(entry["breaks"])
+        mapped = entry["mapped"]
+
+        # Title
+        legend_children.append(text_grob(
+            label=entry["title"], x=0.1, y=y_pos - spacing,
+            just=("left", "top"),
+            gp=Gpar(fontsize=7, col="grey10", fontface="bold"),
+            name=f"legend.title.{aes}",
+        ))
+        spacing += 0.04
+
+        # Key entries
+        for i in range(min(n, 20)):  # cap at 20 entries
+            ky = y_pos - spacing
+            colour = None
+            if isinstance(mapped, (list, np.ndarray)):
+                colour = mapped[i] if i < len(mapped) else "grey50"
+            elif hasattr(mapped, "iloc"):
+                colour = mapped.iloc[i]
+
+            # Determine if this is a colour/fill or shape/size guide
+            if aes in ("colour", "color", "fill"):
+                # Colour key: small filled square
+                try:
+                    col_str = str(colour)
+                    if col_str.startswith("#") or col_str in ("red", "blue", "green",
+                        "black", "white", "grey", "grey50", "steelblue"):
+                        pass
+                    else:
+                        col_str = "grey50"
+                except Exception:
+                    col_str = "grey50"
+                legend_children.append(rect_grob(
+                    x=0.15, y=ky, width=0.06, height=0.025,
+                    just=("left", "top"),
+                    gp=Gpar(fill=col_str, col="grey60", lwd=0.5),
+                    name=f"legend.key.{aes}.{i}",
+                ))
+            else:
+                # Other aesthetics: small grey square placeholder
+                legend_children.append(rect_grob(
+                    x=0.15, y=ky, width=0.06, height=0.025,
+                    just=("left", "top"),
+                    gp=Gpar(fill="grey70", col="grey60", lwd=0.5),
+                    name=f"legend.key.{aes}.{i}",
+                ))
+
+            # Label text
+            lbl = entry["labels"][i] if i < len(entry["labels"]) else ""
+            legend_children.append(text_grob(
+                label=str(lbl), x=0.45, y=ky - 0.012,
+                just=("left", "centre"),
+                gp=Gpar(fontsize=6, col="grey20"),
+                name=f"legend.label.{aes}.{i}",
+            ))
+            spacing += 0.035
+
+        spacing += 0.03  # gap between legend blocks
+
+    if not legend_children:
+        return table
+
+    legend_tree = GTree(
+        children=GList(*legend_children),
+        name="guide-box",
+    )
+
+    # Add a column on the right for the legend
+    table = gtable_add_cols(table, unit([1.8], "cm"), pos=-1)
+    ncol = len(table._widths)
+    nrow = len(table._heights)
+    table = gtable_add_grob(
+        table, legend_tree, t=1, b=nrow, l=ncol,
+        clip="off", name="guide-box",
+    )
+
+    return table
 
 
 def _table_add_titles(table: Any, labels: Dict[str, Any], theme: Any) -> Any:

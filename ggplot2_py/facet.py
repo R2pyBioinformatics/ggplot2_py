@@ -588,6 +588,34 @@ class Facet(GGProto):
 
         col_vars = _resolve_facet_vars(params.get("cols"))
         row_vars = _resolve_facet_vars(params.get("rows"))
+        wrap_vars = _resolve_facet_vars(params.get("facets"))
+
+        # --- facet_wrap: one strip per panel, inserted above each
+        #     panel row.  R places strip labels on top of every panel. ---
+        if wrap_vars and not col_vars and not row_vars:
+            # Insert strip rows from bottom to top so row indices stay valid
+            for r in range(nrow, 0, -1):
+                gt = gtable_add_rows(gt, unit([0.35], "cm"), pos=r - 1)
+                # After insertion, the strip is at row r, panels shifted down
+                panels_in_row = layout[layout["ROW"] == r]
+                for _, row_info in panels_in_row.iterrows():
+                    c = int(row_info["COL"])
+                    label_parts = [str(row_info.get(v, "")) for v in wrap_vars]
+                    label_text = " : ".join(label_parts)
+                    strip = grob_tree(
+                        rect_grob(x=0.5, y=0.5, width=1, height=1,
+                                  gp=Gpar(fill="grey85", col=None),
+                                  name=f"strip.bg.w.{r}.{c}"),
+                        text_grob(label=label_text, x=0.5, y=0.5,
+                                  just="centre", gp=Gpar(fontsize=7, col="grey10"),
+                                  name=f"strip.text.w.{r}.{c}"),
+                        name=f"strip-w-{r}-{c}",
+                    )
+                    gt = gtable_add_grob(
+                        gt, strip, t=r, l=c + 1,
+                        clip="off", name=f"strip-w-{r}-{c}",
+                    )
+            return gt
 
         # --- Top strip: one per column (col variable values) ---
         if col_vars:
