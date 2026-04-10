@@ -442,32 +442,52 @@ class Facet(GGProto):
         nrow = int(layout["ROW"].max()) if len(layout) > 0 else 1
         ncol = int(layout["COL"].max()) if len(layout) > 0 else 1
 
-        # Estimate axis cell sizes based on label content.
-        # In R, axis grobs calculate their own width/height using
-        # grobWidth/grobHeight.  We approximate by estimating text size.
+        # Axis cell sizing — mirrors R's ggplot_gtable() which uses
+        # absolute units (cm) for axis cells and "null" for panels.
+        # In R, grobWidth()/grobHeight() compute the exact text size;
+        # we approximate using character count and a standard font size.
         #
-        # R defaults: axis.ticks.length = unit(0.15, "cm"), fontsize ~11pt
-        # At typical DPI, a character is ~0.6 of fontsize in width.
-        # We express sizes in "null" units proportional to the panel.
+        # R defaults: axis.ticks.length = unit(0.15, "cm"),
+        #   font ~11pt ≈ 0.39cm per character height,
+        #   character width ~0.6 × height ≈ 0.23cm
         y_labels = ranges[0].get("y_labels", []) if ranges else []
         x_labels = ranges[0].get("x_labels", []) if ranges else []
 
-        # Left axis width: based on longest y-label character count.
-        # Labels are at NPC 0.80 within the axis cell (TICK+GAP=0.20),
-        # so the cell must be wide enough for the text at that offset.
+        # Left axis width (cm): tick + gap + label text width
+        # R reference: tick=0.15cm, gap≈0.1cm, char≈0.22cm wide at 11pt
         max_y_chars = max((len(str(l)) for l in y_labels), default=2)
-        AX_L = 0.05 + max_y_chars * 0.022  # ~2.2% per character
+        AX_L_cm = 0.15 + 0.10 + max_y_chars * 0.22 + 0.10  # tick+gap+text+pad
 
-        # Bottom axis height: fixed for horizontal labels
-        AX_B = 0.10
+        # Bottom axis height (cm): detect whether labels will be rotated
+        # (mirrors the auto-rotation logic in _render_axis).
+        max_x_chars = max((len(str(l)) for l in x_labels), default=3)
+        x_breaks = ranges[0].get("x_major", np.array([])) if ranges else np.array([])
+        x_rotated = False
+        if len(x_breaks) > 1:
+            n_xb = len(x_breaks)
+            spacing = (x_breaks[-1] - x_breaks[0]) / max(n_xb - 1, 1)
+            est_width = max_x_chars * 0.016
+            x_rotated = n_xb > 1 and est_width > spacing * 0.9
+        if x_rotated:
+            # Rotated ~30°: projected height ≈ width * sin(30°) + charH * cos(30°)
+            AX_B_cm = 0.15 + 0.10 + max_x_chars * 0.22 * 0.5 + 0.39 * 0.87 + 0.10
+        else:
+            AX_B_cm = 0.15 + 0.10 + 0.39 + 0.10  # tick+gap+1 line height+pad
 
-        # R-style 3-column layout: [left-axis | panel(s) | right-spacer]
-        # and 2-row layout:        [panel(s) | bottom-axis]
-        gt = Gtable(
-            widths=unit([AX_L] + [1] * ncol + [0.01], "null"),
-            heights=unit([1] * nrow + [AX_B], "null"),
-            name="layout",
+        # Build gtable with mixed units: "cm" for axes, "null" for panels.
+        # This matches R's approach where axis cells have fixed absolute
+        # size and panels fill the remaining space.
+        from grid_py._units import unit_c
+        widths = unit_c(
+            unit([AX_L_cm], "cm"),
+            unit([1] * ncol, "null"),
+            unit([0.1], "cm"),
         )
+        heights = unit_c(
+            unit([1] * nrow, "null"),
+            unit([AX_B_cm], "cm"),
+        )
+        gt = Gtable(widths=widths, heights=heights, name="layout")
 
         for _, row_info in layout.iterrows():
             panel_id = int(row_info["PANEL"])
@@ -501,6 +521,8 @@ class Facet(GGProto):
             )
 
             # --- Axes: only on the edges, matching R's facet semantics ---
+            # R adds axis grobs with clip="off" so labels are not clipped
+            # at the cell boundary.
             # Bottom axis: only for the last row
             is_bottom_row = (r == nrow)
             if is_bottom_row and hasattr(coord, "render_axis_h"):
@@ -509,6 +531,7 @@ class Facet(GGProto):
                 if bottom_ax is not None:
                     gt = gtable_add_grob(
                         gt, bottom_ax, t=nrow + 1, l=c + 1,
+                        clip="off",
                         name=f"axis-b-{r}-{c}",
                     )
 
@@ -520,6 +543,7 @@ class Facet(GGProto):
                 if left_ax is not None:
                     gt = gtable_add_grob(
                         gt, left_ax, t=r, l=1,
+                        clip="off",
                         name=f"axis-l-{r}-{c}",
                     )
 
