@@ -1345,6 +1345,12 @@ class ScaleBinned(Scale):
             else:
                 pal_arr = np.asarray(pal)
                 scaled = pal_arr[np.clip(bins - 1, 0, len(pal_arr) - 1)]
+            # np.isnan doesn't work on object arrays (e.g. colour strings)
+            if scaled.dtype.kind in ("U", "S", "O"):
+                na_mask = np.array([v is None or (isinstance(v, float) and np.isnan(v))
+                                    for v in scaled])
+                scaled[na_mask] = self.na_value
+                return scaled
             return np.where(~np.isnan(scaled), scaled, self.na_value)
         else:
             return np.full_like(x_arr, self.na_value)
