@@ -15,6 +15,8 @@ nav:
     - Getting Started: tutorials/ggplot2.ipynb
     - Geom Gallery: tutorials/geoms_gallery.ipynb
     - Labels & Facets: tutorials/labels_and_facets.ipynb
+    - Aesthetic Specs: tutorials/aesthetic_specs.ipynb
+    - Extending ggplot2: tutorials/extending_ggplot2.ipynb
 
 plugins:
   - search
