@@ -1217,9 +1217,8 @@ class GeomPolygon(Geom):
             return null_grob()
 
         coords = _coord_transform(coord, data, panel_params)
-        if "group" in coords.columns:
-            coords = coords.sort_values("group")
-
+        # R does NOT sort by group here — group is only used as
+        # polygon sub-id.  Sorting would scramble vertex order.
         group_id = coords["group"].values if "group" in coords.columns else None
 
         # Take first value per group for gpar
