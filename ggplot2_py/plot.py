@@ -824,6 +824,8 @@ def _table_add_legends(
             "mapped": mapped,
             "labels": labs,
             "title": str(title),
+            "scale": sc,
+            "is_continuous": not getattr(sc, "is_discrete", lambda: True)(),
         })
 
     if not raw_entries:
@@ -844,6 +846,8 @@ def _table_add_legends(
                 "breaks": entry["breaks"],
                 "labels": entry["labels"],
                 "aes_mapped": {entry["aesthetic"]: entry["mapped"]},
+                "scale": entry.get("scale"),
+                "is_continuous": entry.get("is_continuous", False),
             }
     entries = list(merged.values())
 
@@ -879,8 +883,17 @@ def _table_add_legends(
                 break
 
     # ------------------------------------------------------------------
-    # 5. Build each legend as an independent Gtable
+    # 5. Build each guide as an independent Gtable
+    #    Dispatch: continuous colour/fill → colourbar; else → legend
     # ------------------------------------------------------------------
+    from ggplot2_py.guide_colourbar import (
+        extract_colourbar_decor,
+        build_colourbar_decor,
+        build_colourbar_labels,
+        build_colourbar_ticks,
+        assemble_colourbar,
+    )
+
     legend_gtables = []
 
     for entry in entries:
@@ -888,22 +901,80 @@ def _table_add_legends(
         if n_breaks == 0:
             continue
 
-        # Single column layout (ncol=1), all breaks in one column
+        aes_names = list(entry["aes_mapped"].keys())
+        is_colour_fill = any(a in ("colour", "color", "fill") for a in aes_names)
+        is_continuous = entry.get("is_continuous", False)
+        sc = entry.get("scale")
+
+        # --- Colourbar path: continuous colour/fill scale ---
+        if is_colour_fill and is_continuous and sc is not None:
+            # Title grob
+            title_grob = text_grob(
+                label=entry["title"],
+                x=0.0, y=0.5,
+                just=("left", "centre"),
+                gp=Gpar(
+                    fontsize=title_size,
+                    col=ltitle_el["colour"],
+                    fontface="bold",
+                ),
+                name=f"colourbar.title.{entry['title']}",
+            )
+
+            # Extract dense colour sequence
+            decor = extract_colourbar_decor(sc, nbin=300)
+
+            # Build bar grob (raster mode)
+            bar_parts = build_colourbar_decor(decor, direction="vertical",
+                                              display="raster")
+
+            # Build tick labels
+            limits = sc.get_limits()
+            cb_labels = build_colourbar_labels(
+                entry["breaks"], entry["labels"], limits,
+                direction="vertical",
+                label_size=label_size, label_colour=ltext_el["colour"],
+            )
+
+            # Build tick marks
+            ticks = build_colourbar_ticks(
+                entry["breaks"], limits, direction="vertical",
+            )
+
+            # Estimate label width
+            max_lab_len = max((len(str(l)) for l in entry["labels"]), default=3)
+            label_w_cm = max(max_lab_len * 0.18, 0.5)
+
+            # Assemble
+            legend_gt = assemble_colourbar(
+                bar_grob=bar_parts["bar"],
+                frame_grob=bar_parts["frame"],
+                ticks_grob=ticks,
+                label_grobs=cb_labels,
+                title_grob=title_grob,
+                direction="vertical",
+                bar_width_cm=0.5,
+                bar_height_cm=3.0,
+                label_width_cm=label_w_cm,
+                padding_cm=PADDING_CM,
+                bg_colour="white",
+            )
+            legend_gtables.append(legend_gt)
+            continue
+
+        # --- Legend path: discrete scales ---
         nrow = min(n_breaks, 20)
         ncol = 1
 
-        # Build key glyphs
         decor = build_legend_decor(
             entry, draw_key_fn, layers,
             key_width_cm=KEY_W_CM, key_height_cm=KEY_H_CM,
         )
 
-        # Build labels
         label_grobs = build_legend_labels(
             entry, label_size=label_size, label_colour=ltext_el["colour"],
         )
 
-        # Measure
         sizes = measure_legend_grobs(
             decor, label_grobs, n_breaks,
             nrow=nrow, ncol=ncol,
@@ -912,13 +983,11 @@ def _table_add_legends(
             text_position="right",
         )
 
-        # Layout
         layout = arrange_legend_layout(
             n_breaks, nrow=nrow, ncol=ncol,
             text_position="right",
         )
 
-        # Title grob
         title_grob = text_grob(
             label=entry["title"],
             x=0.0, y=0.5,
@@ -931,7 +1000,6 @@ def _table_add_legends(
             name=f"legend.title.{entry['title']}",
         )
 
-        # Assemble into a Gtable
         legend_gt = assemble_legend(
             decor, label_grobs, title_grob,
             layout, sizes,
