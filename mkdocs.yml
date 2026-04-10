@@ -1,5 +1,7 @@
 site_name: ggplot2_py
 site_description: Python port of R's ggplot2 package
+use_directory_urls: false
+
 theme:
   name: material
   palette:
@@ -11,6 +13,7 @@ nav:
   - API Reference: api.md
   - Tutorials:
     - Getting Started: tutorials/ggplot2.ipynb
+    - Geom Gallery: tutorials/geoms_gallery.ipynb
 
 plugins:
   - search
@@ -18,6 +21,9 @@ plugins:
       handlers:
         python:
           paths: [.]
+  - mkdocs-jupyter:
+      include_source: true
+      execute: false
 
 markdown_extensions:
   - pymdownx.highlight
