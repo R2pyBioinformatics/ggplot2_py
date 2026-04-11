@@ -532,6 +532,17 @@ class Coord(GGProto):
         Which directions to reverse: ``"none"``, ``"x"``, ``"y"``, or ``"xy"``.
     """
 
+    # --- Auto-registration registry (Python-exclusive) -------------------
+    _registry: Dict[str, Any] = {}
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        name = cls.__name__
+        if name.startswith("Coord") and len(name) > 5:
+            key = name[5:]
+            Coord._registry[key] = cls
+            Coord._registry[key.lower()] = cls
+
     default: bool = False
     clip: str = "on"
     reverse: str = "none"

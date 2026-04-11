@@ -235,6 +235,17 @@ class Facet(GGProto):
         Faceting parameters (populated by the constructor).
     """
 
+    # --- Auto-registration registry (Python-exclusive) -------------------
+    _registry: Dict[str, Any] = {}
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        name = cls.__name__
+        if name.startswith("Facet") and len(name) > 5:
+            key = name[5:]
+            Facet._registry[key] = cls
+            Facet._registry[key.lower()] = cls
+
     shrink: bool = False
     params: Dict[str, Any] = {}
 
