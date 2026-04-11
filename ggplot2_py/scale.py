@@ -414,6 +414,17 @@ class Scale(GGProto):
     breaks and labels.
     """
 
+    # --- Auto-registration registry (Python-exclusive) -------------------
+    _registry: Dict[str, Any] = {}
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        name = cls.__name__
+        if name.startswith("Scale") and len(name) > 5:
+            key = name[5:]  # strip "Scale" prefix
+            Scale._registry[key] = cls
+            Scale._registry[key.lower()] = cls
+
     call: Optional[str] = None
     aesthetics: List[str] = []
     palette: Optional[Callable] = None
