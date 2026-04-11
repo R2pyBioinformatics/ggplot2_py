@@ -218,6 +218,7 @@ __all__: List[str] = [
     # Linetype
     "scale_linetype",
     "scale_linetype_discrete",
+    "scale_linetype_ordinal",
     "scale_linetype_continuous",
     "scale_linetype_binned",
     "scale_linetype_identity",
@@ -3714,6 +3715,7 @@ def scale_linetype(
 
 
 scale_linetype_discrete = scale_linetype
+scale_linetype_ordinal = scale_linetype
 
 
 def scale_linetype_binned(
