@@ -2486,31 +2486,26 @@ class GeomHex(Geom):
                     for c in viridis(t)
                 ]
 
-        # R semantics: GeomHex builds hex vertices in data coords using
-        # the stat's binwidth, then transforms everything to NPC.
-        # This avoids resolution() artefacts from offset hex grids.
+        # R semantics (geom-hex.R:14-29): GeomHex builds hex vertices in
+        # data coords using the stat's binwidth, then transforms to NPC.
         n = len(data)
 
-        # Recover binwidth from the stat's bin spacing in data coords.
-        xu = np.sort(np.unique(data["x"].values))
-        yu = np.sort(np.unique(data["y"].values))
-        if len(xu) > 2:
-            # Column spacing = most common large gap (skip tiny offsets)
-            xd = np.diff(xu)
-            bw_x = float(np.median(xd[xd > np.median(xd) * 0.5])) if len(xd) > 0 else 1.0
+        # Use width/height from stat output (R: data$width, data$height).
+        # Fall back to resolution-based estimate if not available.
+        if "width" in data.columns:
+            dx = float(data["width"].iloc[0]) / 2
         else:
-            bw_x = 1.0
-        if len(yu) > 2:
-            yd = np.diff(yu)
-            bw_y_row = float(np.median(yd[yd > np.median(yd) * 0.5])) if len(yd) > 0 else 1.0
+            dx = resolution(data["x"].values, zero=False)
+        if "height" in data.columns:
+            dy = float(data["height"].iloc[0]) / np.sqrt(3) / 2
         else:
-            bw_y_row = 1.0
+            dy = resolution(data["y"].values, zero=False) / np.sqrt(3) / 2 * 1.15
 
-        # R's hexcoords in data space: flat-top hex matching bin grid
-        hdx = bw_x / 2
-        hdy = bw_y_row / 2
-        hex_x = np.array([hdx, hdx, 0, -hdx, -hdx, 0])
-        hex_y = np.array([hdy/2, -hdy/2, -hdy, -hdy/2, hdy/2, hdy])
+        # R: hexbin::hexcoords(dx, dy)
+        # x = dx * c(1, 1, 0, -1, -1, 0) / 2
+        # y = dy * c(1, -1, -2, -1, 1, 2) / 2
+        hex_x = dx * np.array([1, 1, 0, -1, -1, 0]) / 2
+        hex_y = dy * np.array([1, -1, -2, -1, 1, 2]) / 2
 
         all_x = np.repeat(data["x"].values, 6) + np.tile(hex_x, n)
         all_y = np.repeat(data["y"].values, 6) + np.tile(hex_y, n)

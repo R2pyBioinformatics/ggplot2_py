@@ -1181,12 +1181,16 @@ def _hex_binwidth(bins: int, scales: Any) -> Tuple[float, float]:
     -------
     tuple of float
     """
-    if hasattr(scales, "x") and hasattr(scales.x, "dimension"):
-        x_range = np.array(scales.x.dimension())
+    # scales may be a dict or an object with attributes
+    x_scale = scales.get("x") if isinstance(scales, dict) else getattr(scales, "x", None)
+    y_scale = scales.get("y") if isinstance(scales, dict) else getattr(scales, "y", None)
+
+    if x_scale is not None and hasattr(x_scale, "dimension"):
+        x_range = np.array(x_scale.dimension())
     else:
         x_range = np.array([0.0, 1.0])
-    if hasattr(scales, "y") and hasattr(scales.y, "dimension"):
-        y_range = np.array(scales.y.dimension())
+    if y_scale is not None and hasattr(y_scale, "dimension"):
+        y_range = np.array(y_scale.dimension())
     else:
         y_range = np.array([0.0, 1.0])
 
@@ -4006,6 +4010,10 @@ class StatBinhex(Stat):
         max_count = out["count"].max()
         out["ncount"] = out["count"] / max_count if max_count > 0 else 0
         out.drop(columns=["value"], inplace=True, errors="ignore")
+
+        # R: out$width <- binwidth[1]; out$height <- binwidth[2]
+        out["width"] = binwidth[0]
+        out["height"] = binwidth[1]
 
         return out
 
