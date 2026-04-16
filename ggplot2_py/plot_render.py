@@ -543,6 +543,7 @@ def _table_add_legends(
         decor = build_legend_decor(
             entry, draw_key_fn, layers,
             key_width_cm=KEY_W_CM, key_height_cm=KEY_H_CM,
+            theme=theme,
         )
 
         # R (guide-legend.R:433-450): labels are ``titleGrob``s with

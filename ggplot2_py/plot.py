@@ -792,6 +792,17 @@ def _build_ggplot(plot):
     data = by_layer(lambda l, d: l.map_statistic(d, plot), layers, data, "mapping stat to aesthetics")
     data = _h(plot, "after", S.MAP_STAT, data)
 
+    # R (layer.R:map_statistic, plot-build.R:83): after stats map new
+    # aesthetics into data (e.g. ``fill = after_stat(count)`` from
+    # StatBinhex), scales for those new columns must be registered
+    # with the plot.  Without this step ``geom_hex`` ends up with a
+    # ``fill`` column of numeric counts but no scale_fill, so the
+    # colourbar legend never appears and the hex cells render
+    # without the gradient.
+    for i in range(len(data)):
+        if data[i] is not None and not data[i].empty:
+            scales.add_defaults(data[i], plot.plot_env)
+
     # --- Add missing scales ---
     scales.add_missing(["x", "y"], plot.plot_env)
 

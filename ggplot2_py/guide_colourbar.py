@@ -428,11 +428,20 @@ def build_colourbar_ticks(
     limits: Tuple[float, float],
     direction: str = "vertical",
     draw_lim: Tuple[bool, bool] = (True, True),
-    tick_length_cm: float = _DEFAULT_TICK_LENGTH_CM,
+    tick_length_npc: float = 0.2,
+    tick_colour: str = "white",
+    tick_linewidth_mm: float = 0.5 / (72.27 / 25.4),
 ) -> Any:
     """Build tick marks at break positions.
 
-    Mirrors ``GuideColourbar$build_ticks`` (guide-colorbar.R:343-358).
+    Mirrors ``GuideColourbar$build_ticks`` + ``Guide$build_ticks``
+    (guide-colorbar.R:343-358, guide-.R:698-741).  In R each tick
+    starts at the bar edge and extends **inward** by
+    ``length = rel(0.2) * legend.key.size`` — for a vertical bar
+    whose width matches the key size this is 0.2 npc of the bar's
+    parallel dimension.  The default colour is **white** (from
+    ``default_ticks = element_line(colour="white", linewidth=0.5/.pt)``)
+    so the ticks are visible on any dark/light bar colour.
 
     Parameters
     ----------
@@ -444,13 +453,13 @@ def build_colourbar_ticks(
         ``"vertical"`` or ``"horizontal"``.
     draw_lim : tuple of bool
         Whether to draw ticks at lower/upper limits.
-    tick_length_cm : float
-        Tick mark length in cm.
-
-    Returns
-    -------
-    grob
-        Tick marks grob.
+    tick_length_npc : float
+        Tick length as a fraction of the bar's orthogonal dimension
+        (0.2 = R default ``legend.ticks.length = rel(0.2)``).
+    tick_colour : str
+        Tick line colour (default ``"white"`` per R ``default_ticks``).
+    tick_linewidth : float
+        Tick line width in grid lwd units.
     """
     lo, hi = limits
     rng = hi - lo
@@ -462,7 +471,6 @@ def build_colourbar_ticks(
         npc_pos = (float(brk) - lo) / rng
         positions.append(npc_pos)
 
-    # Optionally remove limit ticks
     if not draw_lim[0] and positions:
         positions = positions[1:]
     if not draw_lim[1] and positions:
@@ -471,40 +479,41 @@ def build_colourbar_ticks(
     if not positions:
         return null_grob()
 
-    # Build tick segments on both sides of the bar
-    # R: ticks on "right" and "left" for vertical, "bottom" and "top" for horizontal
-    tick_npc = tick_length_cm / 10.0  # approximate conversion
+    n = len(positions)
+    # R (utilities-grid.R:32-33 gg_par):
+    #   args$lwd <- args$lwd * .pt
+    # element_line linewidth is in mm; grid lwd is in points.  Multiply
+    # by .pt = 72.27/25.4 to convert.  default_ticks linewidth=0.5/.pt
+    # mm → lwd = 0.5 pt (matches R's visible tick stroke).
+    _PT = 72.27 / 25.4
+    gp = Gpar(col=tick_colour, lwd=tick_linewidth_mm * _PT)
 
     if direction == "vertical":
-        # Ticks extend left from bar edge
-        x0 = [0.0] * len(positions)
-        x1 = [-tick_npc] * len(positions)
-        y0 = positions
-        y1 = positions
-        # Also ticks on right side
-        x0_r = [1.0] * len(positions)
-        x1_r = [1.0 + tick_npc] * len(positions)
-    else:
-        x0 = positions
-        x1 = positions
-        y0 = [0.0] * len(positions)
-        y1 = [-tick_npc] * len(positions)
-        x0_r = positions
-        x1_r = positions
-        y0_r = [1.0] * len(positions)
-        y1_r = [1.0 + tick_npc] * len(positions)
-
-    gp = Gpar(col="grey50", lwd=0.5)
-    if direction == "vertical":
+        # Ticks on both sides, extending INWARD (R guide-.R:728-732):
+        #   right side (position=1): dir = -length; segment = [1, 1-length]
+        #   left  side (position=0): dir = +length; segment = [0, 0+length]
+        x0_r = [1.0] * n
+        x1_r = [1.0 - tick_length_npc] * n
+        x0_l = [0.0] * n
+        x1_l = [0.0 + tick_length_npc] * n
         return grob_tree(
-            segments_grob(x0=x0, y0=y0, x1=x1, y1=y1, gp=gp, name="ticks.left"),
-            segments_grob(x0=x0_r, y0=y0, x1=x1_r, y1=y1, gp=gp, name="ticks.right"),
+            segments_grob(x0=x0_l, y0=positions, x1=x1_l, y1=positions,
+                          gp=gp, name="ticks.left"),
+            segments_grob(x0=x0_r, y0=positions, x1=x1_r, y1=positions,
+                          gp=gp, name="ticks.right"),
             name="colourbar.ticks",
         )
     else:
+        # Horizontal: ticks top & bottom, extending inward
+        y0_t = [1.0] * n
+        y1_t = [1.0 - tick_length_npc] * n
+        y0_b = [0.0] * n
+        y1_b = [0.0 + tick_length_npc] * n
         return grob_tree(
-            segments_grob(x0=x0, y0=y0, x1=x1, y1=y1, gp=gp, name="ticks.bottom"),
-            segments_grob(x0=x0_r, y0=y0_r, x1=x1_r, y1=y1_r, gp=gp, name="ticks.top"),
+            segments_grob(x0=positions, y0=y0_b, x1=positions, y1=y1_b,
+                          gp=gp, name="ticks.bottom"),
+            segments_grob(x0=positions, y0=y0_t, x1=positions, y1=y1_t,
+                          gp=gp, name="ticks.top"),
             name="colourbar.ticks",
         )
 

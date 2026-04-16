@@ -3848,8 +3848,9 @@ class StatBin2d(Stat):
         ``["weight"]``
     """
 
+    # R (stat-bin2d.R:8): aes(weight = 1, fill = after_stat(count))
     required_aes: List[str] = ["x", "y"]
-    default_aes: Dict[str, Any] = {"weight": 1}
+    default_aes: Dict[str, Any] = {"weight": 1, "fill": AfterStat("count")}
     dropped_aes: List[str] = ["weight"]
 
     def compute_group(
@@ -3974,8 +3975,12 @@ class StatBinhex(Stat):
         ``["weight"]``
     """
 
+    # R (stat-binhex.R:7):
+    #   default_aes = aes(weight = 1, fill = after_stat(count))
+    # Without ``fill = after_stat(count)`` no fill scale is added
+    # and the colourbar legend for count never appears.
     required_aes: List[str] = ["x", "y"]
-    default_aes: Dict[str, Any] = {"weight": 1}
+    default_aes: Dict[str, Any] = {"weight": 1, "fill": AfterStat("count")}
     dropped_aes: List[str] = ["weight"]
 
     def compute_group(

@@ -99,6 +99,7 @@ def build_legend_decor(
     layers: Any,
     key_width_cm: float = _DEFAULT_KEY_WIDTH_CM,
     key_height_cm: float = _DEFAULT_KEY_HEIGHT_CM,
+    theme: Any = None,
 ) -> List[Any]:
     """Build legend key glyphs for one merged entry.
 
@@ -138,10 +139,24 @@ def build_legend_decor(
     # ``fill='red'`` shows up as a black disc instead of a red ring.
     layer_params: Dict[str, Any] = {}
     layer_aes_params: Dict[str, Any] = {}
+    geom_default_aes: Dict[str, Any] = {}
     if layers:
         for layer in layers:
             geom = getattr(layer, "geom", None)
             if geom is not None:
+                # R (guide-legend.R:408): data passed to draw_key is the
+                # decoration's data, which was populated with the
+                # geom's ``default_aes`` resolved through the active
+                # theme — NOT hardcoded black/grey.  We mirror that by
+                # evaluating FromTheme markers in default_aes now.
+                raw = getattr(geom, "default_aes", None)
+                if raw is not None:
+                    try:
+                        from ggplot2_py.geom import _eval_from_theme
+                        resolved = _eval_from_theme(raw, theme)
+                        geom_default_aes = dict(resolved.items()) if hasattr(resolved, "items") else dict(resolved)
+                    except Exception:
+                        geom_default_aes = {}
                 layer_params = getattr(layer, "computed_geom_params", {})
                 if not layer_params:
                     layer_params = getattr(geom, "default_params", {})
@@ -206,9 +221,18 @@ def build_legend_decor(
             elif v is not None:
                 data[k] = v
 
-        # Fill in defaults that draw_key functions expect
-        data.setdefault("colour", "black")
-        data.setdefault("fill", "black")
+        # Seed defaults from the geom's theme-resolved default_aes.
+        # R (guide-legend.R:404-408): per-break ``data`` already
+        # contains the geom's theme defaults; e.g. GeomDensity's
+        # ``fill = from_theme(fill %||% NA)`` resolves to NA, so the
+        # legend key is *transparent* — not black.  Only the
+        # ultra-fallbacks below kick in when the geom provides
+        # nothing (no layer/no default_aes).
+        for _dk, _dv in geom_default_aes.items():
+            data.setdefault(_dk, _dv)
+
+        data.setdefault("colour", None)   # R: NA (no border by default)
+        data.setdefault("fill", None)     # R: NA (no fill by default)
         data.setdefault("size", 1.5)
         data.setdefault("alpha", None)
         data.setdefault("stroke", 0.5)
