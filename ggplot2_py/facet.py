@@ -107,8 +107,30 @@ def _layout_null() -> pd.DataFrame:
     })
 
 
+def _n2mfrow(n: int) -> Tuple[int, int]:
+    """Port of R's ``grDevices::n2mfrow`` (aspect=1).
+
+    Returns ``(rows, cols)``.  R uses this to compute panel grid
+    shapes for ``par(mfrow=...)``; ``facet_wrap`` reuses it and
+    *swaps* the result so that ``nrow<-rc[2]; ncol<-rc[1]`` —
+    giving a wide-preferring layout (1×n for n ≤ 3).
+    """
+    if n <= 3:
+        return (n, 1)
+    if n <= 6:
+        return ((n + 1) // 2, 2)
+    if n <= 12:
+        return ((n + 2) // 3, 3)
+    asp = 1
+    return (math.ceil(math.sqrt(n / asp)), math.ceil(math.sqrt(n * asp)))
+
+
 def _wrap_dims(n: int, nrow: Optional[int] = None, ncol: Optional[int] = None) -> Tuple[int, int]:
     """Compute grid dimensions for *n* panels.
+
+    Mirrors R's ``wrap_dims()`` (facet-wrap.R:478-493): when both
+    nrow and ncol are ``NULL``, uses ``n2mfrow`` and swaps the axes
+    so n=3 → 1×3 (not 2×2).
 
     Parameters
     ----------
@@ -126,8 +148,10 @@ def _wrap_dims(n: int, nrow: Optional[int] = None, ncol: Optional[int] = None) -
         If the grid is too small for *n* panels.
     """
     if nrow is None and ncol is None:
-        ncol = math.ceil(math.sqrt(n))
-        nrow = math.ceil(n / ncol)
+        # R: rc <- n2mfrow(n); nrow <- rc[2]; ncol <- rc[1]
+        rc = _n2mfrow(n)
+        nrow = rc[1]
+        ncol = rc[0]
     elif ncol is None:
         ncol = math.ceil(n / nrow)
     elif nrow is None:
@@ -209,7 +233,22 @@ def _combine_vars(
     for v in vars_:
         if v not in combined.columns:
             combined[v] = "(all)"
-    return combined[vars_].reset_index(drop=True)
+    combined = combined[vars_].reset_index(drop=True)
+    # R (facet-.R: combine_vars calls df_layout which runs unique +
+    # sort via reorder/id on the faceting vars): for non-factor
+    # inputs, panel order follows ``sort(unique(x))``.  Factor inputs
+    # keep level order.  Mirrors the same alphabetical rule we fixed
+    # for discrete scales in scales_py/range.py.
+    sort_cols = [c for c in vars_
+                 if c in combined.columns
+                 and not hasattr(combined[c], "cat")]
+    if sort_cols:
+        try:
+            combined = combined.sort_values(sort_cols, kind="mergesort").reset_index(drop=True)
+        except TypeError:
+            # Mixed / unsortable types — fall back to insertion order
+            pass
+    return combined
 
 
 def _map_facet_data(
