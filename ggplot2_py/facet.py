@@ -590,6 +590,7 @@ class Facet(GGProto):
 
             gt = gtable_add_grob(
                 gt, decorated, t=r, l=c, name=f"panel-{r}-{c}",
+                clip=getattr(coord, "clip", "on"),
             )
 
         # ── Step 3: Render axes and attach with measured sizes
