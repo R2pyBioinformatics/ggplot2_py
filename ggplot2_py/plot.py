@@ -358,6 +358,8 @@ class GGPlot:
             "data", "mapping", "layers", "scales", "theme",
             "coordinates", "facet", "labels", "guides", "plot_env",
             "layout", "_meta", "_build_hooks",
+            # Rendering hints — user can override before notebook display.
+            "fig_width", "fig_height", "fig_dpi",
         ):
             object.__setattr__(self, name, value)
         else:
