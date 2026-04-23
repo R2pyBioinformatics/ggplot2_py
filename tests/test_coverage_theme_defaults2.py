@@ -15,7 +15,12 @@ class TestColMix:
         assert _col_mix("black", "white", 0.5) is not None
 
     def test_invalid_colour(self):
-        assert _col_mix("not_a_color_xyz", "white", 0.5) is not None
+        # R's ``scales::col_mix`` raises on an invalid colour name (it
+        # delegates to ``grDevices::col2rgb`` which errors for unknown
+        # colours). Our port is R-faithful: ``_col_mix`` -> ``scales.col_mix``
+        # raises ``ValueError: Unknown colour``. Preserve that behaviour.
+        with pytest.raises((ValueError, TypeError)):
+            _col_mix("not_a_color_xyz", "white", 0.5)
 
 
 class TestThemeSubFunctions:

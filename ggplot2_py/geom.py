@@ -89,12 +89,18 @@ from grid_py import (
     roundrect_grob,
 )
 
-from scales import alpha as _scales_alpha_raw
+from scales import alpha as _scales_alpha_raw, col_numeric as _scales_col_numeric
 
 import re as _re
 
+# Module-level viridis mapper for GeomHex count→fill fallback.
+# Matches R's scales::col_numeric("viridis", domain=c(0,1)) output.
+_HEX_VIRIDIS_MAPPER = _scales_col_numeric(
+    "viridis", domain=(0, 1), na_color="#808080"
+)
+
 def _r_col_to_mpl(c):
-    """Convert R-style grey names to RGB tuples for matplotlib."""
+    """Convert R-style ``grey<N>``/``gray<N>`` names to hex strings."""
     if isinstance(c, str):
         m = _re.match(r'^gr[ae]y(\d{1,3})$', c)
         if m:
@@ -717,6 +723,12 @@ class Geom(GGProto):
     def parameters(self, extra: bool = False) -> List[str]:
         """List acceptable parameters for this geom.
 
+        Port of R ggplot2 ``Geom$parameters`` (``R/geom-.R:428-441``): use
+        ``draw_panel`` formals when the subclass overrides them; fall
+        back to ``draw_group`` when the concrete class still points at
+        the base ``Geom.draw_panel`` delegator (R checks this via
+        ``"..." %in% panel_args``).
+
         Parameters
         ----------
         extra : bool
@@ -727,10 +739,37 @@ class Geom(GGProto):
         list of str
         """
         import inspect
-        sig = inspect.signature(self.draw_panel)
-        args = [p for p in sig.parameters if p not in ("self", "data", "panel_params", "coord")]
+
+        def _named(fn) -> List[str]:
+            sig = inspect.signature(fn)
+            return [
+                p.name for p in sig.parameters.values()
+                if p.name != "self"
+                and p.kind is not inspect.Parameter.VAR_POSITIONAL
+                and p.kind is not inspect.Parameter.VAR_KEYWORD
+            ]
+
+        # Same R-parity union as ``Stat.parameters`` (see stat.py). A few
+        # Python geoms override ``draw_panel`` mostly to forward to
+        # ``draw_group`` + append ``**kwargs``, so honouring both method
+        # signatures is the only way to see the full parameter set.
+        panel_overridden = type(self).draw_panel is not Geom.draw_panel
+        group_overridden = type(self).draw_group is not Geom.draw_group
+        args: List[str] = []
+        if panel_overridden:
+            args.extend(_named(self.draw_panel))
+        if group_overridden:
+            args.extend(_named(self.draw_group))
+        if not panel_overridden and not group_overridden:
+            args = _named(self.draw_group)
+
+        # R: setdiff(args, names(ggproto_formals(Geom$draw_group))) —
+        # drop the ``data`` / ``panel_params`` / ``coord`` slots.
+        base_args = set(_named(Geom.draw_group))
+        args = [a for a in dict.fromkeys(args) if a not in base_args]
+
         if extra:
-            args = list(set(args) | set(self.extra_params))
+            args = list(dict.fromkeys(args + list(self.extra_params)))
         return args
 
     def aesthetics(self) -> List[str]:
@@ -2738,13 +2777,9 @@ class GeomHex(Geom):
                     t = (counts - mn) / (mx - mn)
                 else:
                     t = np.full_like(counts, 0.5)
-                # Viridis-like: dark blue → yellow
-                from matplotlib.cm import viridis
+                # Viridis via the scales col_numeric mapper (module-level).
                 data = data.copy()
-                data["fill"] = [
-                    f"#{int(c[0]*255):02x}{int(c[1]*255):02x}{int(c[2]*255):02x}"
-                    for c in viridis(t)
-                ]
+                data["fill"] = list(_HEX_VIRIDIS_MAPPER(t))
 
         # R semantics (geom-hex.R:14-29): GeomHex builds hex vertices in
         # data coords using the stat's binwidth, then transforms to NPC.
@@ -4328,12 +4363,19 @@ def geom_blank(
     inherit_aes: bool = True,
     **kwargs: Any,
 ) -> Any:
-    """Create a blank layer (draws nothing)."""
+    """Create a blank layer (draws nothing).
+
+    Mirrors R ``geom_blank`` (``R/geom-blank.R:12-28``), which passes
+    ``check.aes = FALSE`` so that aesthetics inherited purely to extend
+    the plot's limits (e.g. via :func:`expand_limits`) aren't reported
+    as "unknown" — ``GeomBlank`` deliberately declares no aesthetics.
+    """
     layer = _layer_import()
     return layer(
         geom=GeomBlank, stat=stat, data=data, mapping=mapping,
         position=position, show_legend=show_legend, inherit_aes=inherit_aes,
         params=kwargs,
+        check_aes=False,
     )
 
 

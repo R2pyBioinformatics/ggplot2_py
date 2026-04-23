@@ -7,6 +7,7 @@ Each function returns a ``Theme`` with all elements defined.
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 from grid_py import Unit
@@ -54,8 +55,36 @@ __all__ = [
 # Colour mixing helper
 # ---------------------------------------------------------------------------
 
+_R_GREY_RE = re.compile(r"^gr[ae]y(\d{1,3})$", re.IGNORECASE)
+
+
+def _r_grey_to_hex(s):
+    """Translate R-style ``grey<N>`` / ``gray<N>`` (``N=0..100``) to hex.
+
+    Mirrors R's ``grDevices::col2rgb()`` mapping for the named grey
+    palette, which uses C-style round-half-up (``int(N*2.55 + 0.5)``)
+    rather than banker's rounding.  Returns *s* unchanged if the string
+    does not match the palette pattern (non-strings also pass through).
+    """
+    if not isinstance(s, str):
+        return s
+    m = _R_GREY_RE.match(s)
+    if m:
+        n = int(m.group(1))
+        if 0 <= n <= 100:
+            v = int(n * 2.55 + 0.5)
+            return f"#{v:02X}{v:02X}{v:02X}"
+    return s
+
+
 def _col_mix(ink: str, paper: str, amount: float) -> str:
     """Mix *ink* and *paper* colours.
+
+    Delegates to :func:`scales.col_mix`, which mirrors R's
+    ``scales::col_mix``: linear interpolation of RGB components between
+    the two colours.  R-style ``grey<N>`` / ``gray<N>`` names are
+    normalised to hex first because ``scales.col_mix`` only understands
+    CSS names and hex codes.
 
     Parameters
     ----------
@@ -71,19 +100,12 @@ def _col_mix(ink: str, paper: str, amount: float) -> str:
     str
         A hex colour string.
     """
-    import matplotlib.colors as mcolors
-    import numpy as np
+    ink = _r_grey_to_hex(ink)
+    paper = _r_grey_to_hex(paper)
 
-    try:
-        c_ink = np.array(mcolors.to_rgba(ink))
-        c_paper = np.array(mcolors.to_rgba(paper))
-    except ValueError:
-        # Fallback for colours matplotlib cannot parse
-        return ink
+    from scales import col_mix
 
-    mixed = c_ink * (1 - amount) + c_paper * amount
-    mixed = np.clip(mixed, 0, 1)
-    return mcolors.to_hex(mixed, keep_alpha=True)
+    return col_mix(ink, paper, amount=amount, space="rgb")
 
 
 # ---------------------------------------------------------------------------

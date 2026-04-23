@@ -460,6 +460,7 @@ from ggplot2_py.coord import (
     CoordFixed,
     CoordFlip,
     CoordPolar,
+    CoordQuickmap,
     CoordRadial,
     CoordSf,
     CoordTrans,
@@ -469,6 +470,7 @@ from ggplot2_py.coord import (
     coord_fixed,
     coord_flip,
     coord_polar,
+    coord_quickmap,
     coord_radial,
     coord_sf,
     coord_trans,
@@ -798,9 +800,9 @@ __all__ = [
     "scale_stroke", "scale_stroke_continuous",
     # Coords
     "Coord", "CoordCartesian", "CoordFixed", "CoordFlip",
-    "CoordPolar", "CoordRadial", "CoordTrans", "CoordTransform",
+    "CoordPolar", "CoordQuickmap", "CoordRadial", "CoordTrans", "CoordTransform",
     "coord_cartesian", "coord_equal", "coord_fixed", "coord_flip",
-    "coord_polar", "coord_radial", "coord_sf", "coord_trans", "coord_transform",
+    "coord_polar", "coord_quickmap", "coord_radial", "coord_sf", "coord_trans", "coord_transform",
     "CoordSf",
     "coord_munch", "is_coord",
     # Facets

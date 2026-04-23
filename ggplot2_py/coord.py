@@ -29,6 +29,7 @@ __all__ = [
     "CoordFixed",
     "CoordFlip",
     "CoordPolar",
+    "CoordQuickmap",
     "CoordRadial",
     "CoordSf",
     "CoordTrans",
@@ -38,6 +39,7 @@ __all__ = [
     "coord_fixed",
     "coord_flip",
     "coord_polar",
+    "coord_quickmap",
     "coord_radial",
     "coord_sf",
     "coord_trans",
@@ -1153,6 +1155,70 @@ class CoordFixed(CoordCartesian):
         y_range = ranges.get("y.range") or ranges.get("y_range", [0, 1])
         x_range = ranges.get("x.range") or ranges.get("x_range", [0, 1])
         return (y_range[1] - y_range[0]) / max(x_range[1] - x_range[0], 1e-10) * self.ratio
+
+
+# ---------------------------------------------------------------------------
+# CoordQuickmap
+# ---------------------------------------------------------------------------
+
+
+def _dist_central_angle(lon: Sequence[float], lat: Sequence[float]) -> np.ndarray:
+    """Central angle between successive ``(lon, lat)`` points in radians.
+
+    Port of R ``dist_central_angle()`` (coord-munch.R:99-109): converts
+    to radians, then applies the haversine formula
+    ``2 * asin(sqrt(hav(dlat) + cos(lat1)*cos(lat2)*hav(dlon)))``.
+    Multiplying by the sphere radius gives great-circle distance.
+    """
+    lat = np.asarray(lat, dtype=float) * math.pi / 180.0
+    lon = np.asarray(lon, dtype=float) * math.pi / 180.0
+
+    def _hav(x: np.ndarray) -> np.ndarray:
+        return np.sin(x / 2.0) ** 2
+
+    d_lat = np.diff(lat)
+    d_lon = np.diff(lon)
+    return 2.0 * np.arcsin(
+        np.sqrt(_hav(d_lat) + np.cos(lat[:-1]) * np.cos(lat[1:]) * _hav(d_lon))
+    )
+
+
+class CoordQuickmap(CoordCartesian):
+    """Fast approximate map projection.
+
+    Port of R ``CoordQuickmap`` (coord-quickmap.R).  Applies an aspect
+    ratio based on the central latitude so that visual proportions are
+    roughly correct for geographic data, without running a full
+    projection.  Inherits transform / range / break machinery from
+    :class:`CoordCartesian`.
+    """
+
+    def is_free(self) -> bool:
+        return False
+
+    def aspect(self, ranges: Any) -> float:
+        """Aspect ratio approximating true geographic proportions.
+
+        Mirrors R's implementation: compute one-degree distances in
+        longitude and latitude at the panel centre via
+        ``dist_central_angle``, then scale the Cartesian aspect by
+        ``y.dist / x.dist``.
+        """
+        y_range = ranges.get("y.range") or ranges.get("y_range", [0, 1])
+        x_range = ranges.get("x.range") or ranges.get("x_range", [0, 1])
+
+        x_center = (x_range[0] + x_range[1]) / 2.0
+        y_center = (y_range[0] + y_range[1]) / 2.0
+
+        x_dist = _dist_central_angle(
+            [x_center - 0.5, x_center + 0.5], [y_center, y_center]
+        )[0]
+        y_dist = _dist_central_angle(
+            [x_center, x_center], [y_center - 0.5, y_center + 0.5]
+        )[0]
+
+        ratio = y_dist / x_dist
+        return (y_range[1] - y_range[0]) / (x_range[1] - x_range[0]) * ratio
 
 
 # ---------------------------------------------------------------------------
@@ -3041,6 +3107,41 @@ def coord_fixed(ratio: float = 1.0, **kwargs: Any) -> CoordFixed:
 
 
 coord_equal = coord_fixed
+
+
+def coord_quickmap(
+    xlim: Optional[Sequence[float]] = None,
+    ylim: Optional[Sequence[float]] = None,
+    expand: Union[bool, List[bool]] = True,
+    clip: str = "on",
+) -> CoordQuickmap:
+    """Create a fast approximate map coordinate system.
+
+    Mirrors R's ``coord_quickmap()`` (coord-quickmap.R:4-12).  Applies a
+    latitude-dependent aspect ratio without performing a full
+    projection; appropriate for small-to-moderate geographic extents.
+
+    Parameters
+    ----------
+    xlim, ylim : sequence of float or None
+        Limits for zooming (does not filter data).
+    expand : bool or list of bool
+        Whether to expand limits to avoid data/axis overlap.
+    clip : str
+        ``"on"`` or ``"off"``.
+
+    Returns
+    -------
+    CoordQuickmap
+    """
+    return CoordQuickmap(
+        limits={
+            "x": list(xlim) if xlim is not None else None,
+            "y": list(ylim) if ylim is not None else None,
+        },
+        expand=expand,
+        clip=clip,
+    )
 
 
 def coord_flip(

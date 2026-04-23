@@ -1161,9 +1161,12 @@ def _contour_breaks(
     z_range = np.asarray(z_range, dtype=float)
 
     if bins is None and binwidth is None:
-        from matplotlib.ticker import MaxNLocator
-        locator = MaxNLocator(nbins=10)
-        return np.asarray(locator.tick_values(z_range[0], z_range[1]))
+        if np.any(np.isnan(z_range)):
+            return np.asarray([np.nan])
+        if z_range[0] == z_range[1]:
+            return np.asarray([z_range[0]])
+        from scales import breaks_extended
+        return np.asarray(breaks_extended(n=10)(z_range), dtype=float)
 
     if bins is not None:
         if bins == 1:

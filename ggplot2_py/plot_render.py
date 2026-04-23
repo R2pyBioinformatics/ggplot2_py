@@ -19,13 +19,18 @@ R references
 
 from __future__ import annotations
 
+import re
 from functools import singledispatch
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
+from scales.colour_manip import to_rgba as _scales_to_rgba
+
 from ggplot2_py._compat import Waiver, is_waiver, waiver
+
+_R_GREY_RE = re.compile(r"^gr[ae]y(\d{1,3})$", re.IGNORECASE)
 
 __all__ = [
     "ggplot_gtable",
@@ -276,20 +281,23 @@ def _ggplot_gtable_impl(data):
 
 
 def _safe_colour(colour: Any) -> str:
-    """Validate a colour value, returning 'grey50' for invalid inputs."""
+    """Validate a colour value, returning 'grey50' for invalid inputs.
+
+    Accepts anything ``scales.colour_manip.to_rgba`` can parse (hex strings,
+    CSS/R named colours) plus R's ``grey<N>`` / ``gray<N>`` family
+    (0-100 inclusive), which the scales parser does not special-case.
+    """
     if colour is None:
         return "grey50"
     s = str(colour)
-    if s.startswith("#") and len(s) in (7, 9):
+    m = _R_GREY_RE.match(s)
+    if m and 0 <= int(m.group(1)) <= 100:
         return s
-    # Use matplotlib to validate named colours
     try:
-        from matplotlib.colors import is_color_like
-        if is_color_like(s):
-            return s
-    except (ImportError, ValueError):
-        pass
-    return "grey50"
+        _scales_to_rgba(s)
+        return s
+    except (ValueError, TypeError):
+        return "grey50"
 
 
 def _table_add_legends(
