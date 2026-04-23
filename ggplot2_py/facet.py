@@ -437,13 +437,17 @@ class Facet(GGProto):
         dict
             ``{"x": [scales...], "y": [scales...]}``.
         """
+        # R parity (facet-.R:225-234): clone the prototype scale once per
+        # panel so free_x / free_y can train each independently. A bare
+        # ``[x_scale] * n`` produces N aliases of the same object, which
+        # collapses per-panel training into a single union range.
         scales: Dict[str, list] = {}
         if x_scale is not None:
             n_x = int(layout["SCALE_X"].max())
-            scales["x"] = [x_scale] * n_x
+            scales["x"] = [x_scale.clone() for _ in range(n_x)]
         if y_scale is not None:
             n_y = int(layout["SCALE_Y"].max())
-            scales["y"] = [y_scale] * n_y
+            scales["y"] = [y_scale.clone() for _ in range(n_y)]
         return scales
 
     def train_scales(
@@ -593,93 +597,168 @@ class Facet(GGProto):
                 clip=getattr(coord, "clip", "on"),
             )
 
-        # ── Step 3: Render axes and attach with measured sizes
-        # (R: facet-.R attach_axes → seam_table → max_height/max_width)
-        #
-        # Render axis grobs for each unique scale, then attach as new
-        # rows/columns with sizes from grob._height_cm / _width_cm.
+        # ── Step 3: Render axes and weave them between panels.
+        # R: ``facet-wrap.R:267-383`` + ``weave_axes``. Axes are rendered
+        # per panel, interior axes are blanked unless ``free_x`` /
+        # ``free_y`` (or ``draw_axes = "all"``), then the surviving axes
+        # are woven into the gtable one column (or row) per panel column
+        # (or row).
 
-        # Collect axis grobs across all panels to find max sizes
-        left_axes = []
-        bottom_axes = []
-        top_axes = []
-        right_axes = []
+        free = params.get("free", {"x": False, "y": False})
+        draw_axes = params.get("draw_axes", {"x": False, "y": False})
+        show_all_x = bool(free.get("x", False)) or bool(draw_axes.get("x", False))
+        show_all_y = bool(free.get("y", False)) or bool(draw_axes.get("y", False))
+
+        def _grid() -> List[List[Any]]:
+            return [[None] * ncol for _ in range(nrow)]
+
+        left_grid = _grid(); right_grid = _grid()
+        top_grid = _grid();  bottom_grid = _grid()
 
         for _, row_info in layout.iterrows():
             panel_idx = int(row_info["PANEL"]) - 1
-            r = int(row_info["ROW"])
-            c = int(row_info["COL"])
+            r = int(row_info["ROW"]); c = int(row_info["COL"])
             pp = ranges[panel_idx] if panel_idx < len(ranges) else {}
-
             if hasattr(coord, "render_axis_v"):
-                axes_v = coord.render_axis_v(pp, theme)
-                if c == 1:
-                    left_ax = axes_v.get("left")
-                    if left_ax is not None and not _is_null_grob(left_ax):
-                        left_axes.append((r, left_ax))
-                if c == ncol:
-                    right_ax = axes_v.get("right")
-                    if right_ax is not None and not _is_null_grob(right_ax):
-                        right_axes.append((r, right_ax))
-
+                v = coord.render_axis_v(pp, theme)
+                left_grid[r - 1][c - 1] = v.get("left")
+                right_grid[r - 1][c - 1] = v.get("right")
             if hasattr(coord, "render_axis_h"):
-                axes_h = coord.render_axis_h(pp, theme)
-                if r == nrow:
-                    bottom_ax = axes_h.get("bottom")
-                    if bottom_ax is not None and not _is_null_grob(bottom_ax):
-                        bottom_axes.append((c, bottom_ax))
-                if r == 1:
-                    top_ax = axes_h.get("top")
-                    if top_ax is not None and not _is_null_grob(top_ax):
-                        top_axes.append((c, top_ax))
+                h = coord.render_axis_h(pp, theme)
+                top_grid[r - 1][c - 1] = h.get("top")
+                bottom_grid[r - 1][c - 1] = h.get("bottom")
 
-        # Track column offset from left-axis insertion
-        col_offset = 0
+        def _blank(grob: Any) -> bool:
+            return grob is None or _is_null_grob(grob)
 
-        # ── Attach left axis (R: seam_table side="left")
-        if left_axes:
-            max_w = max(_axis_width_cm(ax) for _, ax in left_axes)
-            gt = gtable_add_cols(gt, unit([max_w], "cm"), pos=0)
-            col_offset = 1
-            for r, ax in left_axes:
-                gt = gtable_add_grob(
-                    gt, ax, t=r, l=1, clip="off", name=f"axis-l-{r}",
-                )
+        # Mirror R facet-wrap.R:297-304 — suppress interior axes unless free.
+        if not show_all_y:
+            for r in range(nrow):
+                for c in range(1, ncol):          # cols 2..ncol: blank left
+                    left_grid[r][c] = None
+                for c in range(0, ncol - 1):      # cols 1..ncol-1: blank right
+                    right_grid[r][c] = None
+        if not show_all_x:
+            for c in range(ncol):
+                for r in range(1, nrow):          # rows 2..nrow: blank top
+                    top_grid[r][c] = None
+                for r in range(0, nrow - 1):      # rows 1..nrow-1: blank bottom
+                    bottom_grid[r][c] = None
 
-        # ── Attach right axis (R: seam_table side="right")
-        if right_axes:
-            max_w = max(_axis_width_cm(ax) for _, ax in right_axes)
-            gt = gtable_add_cols(gt, unit([max_w], "cm"), pos=-1)
-            ncol_now = len(gt._widths)
-            for r, ax in right_axes:
-                gt = gtable_add_grob(
-                    gt, ax, t=r, l=ncol_now, clip="off", name=f"axis-r-{r}",
-                )
+        # Running offset maps: panel-col (1-indexed) → current gtable col.
+        panel_col_to_gtable = {c: c for c in range(1, ncol + 1)}
+        panel_row_to_gtable = {r: r for r in range(1, nrow + 1)}
 
-        # ── Attach bottom axis (R: seam_table side="bottom")
-        if bottom_axes:
-            max_h = max(_axis_height_cm(ax) for _, ax in bottom_axes)
-            gt = gtable_add_rows(gt, unit([max_h], "cm"), pos=-1)
-            nrow_now = len(gt._heights)
-            for c, ax in bottom_axes:
-                gt = gtable_add_grob(
-                    gt, ax, t=nrow_now, l=c + col_offset, clip="off",
-                    name=f"axis-b-{c}",
-                )
+        # ── Attach LEFT axes ------------------------------------------------
+        left_active_cols = [
+            c for c in range(ncol)
+            if any(not _blank(left_grid[r][c]) for r in range(nrow))
+        ]
+        for panel_c0 in left_active_cols:
+            panel_c = panel_c0 + 1
+            widths_cm = [
+                _axis_width_cm(left_grid[r][panel_c0])
+                for r in range(nrow) if not _blank(left_grid[r][panel_c0])
+            ]
+            w = max(widths_cm) if widths_cm else 0
+            cur = panel_col_to_gtable[panel_c]
+            # Insert BEFORE current panel col: pos=cur-1 (add after position cur-1).
+            gt = gtable_add_cols(gt, unit([w], "cm"), pos=cur - 1)
+            ax_col = cur
+            for cc in range(panel_c, ncol + 1):
+                panel_col_to_gtable[cc] += 1
+            for r in range(nrow):
+                g = left_grid[r][panel_c0]
+                if not _blank(g):
+                    gt = gtable_add_grob(
+                        gt, g, t=panel_row_to_gtable[r + 1], l=ax_col,
+                        clip="off", name=f"axis-l-{r + 1}-{panel_c}",
+                    )
 
-        # ── Attach top axis (R: seam_table side="top")
-        if top_axes:
-            max_h = max(_axis_height_cm(ax) for _, ax in top_axes)
-            gt = gtable_add_rows(gt, unit([max_h], "cm"), pos=0)
-            for c, ax in top_axes:
-                gt = gtable_add_grob(
-                    gt, ax, t=1, l=c + col_offset, clip="off",
-                    name=f"axis-t-{c}",
-                )
+        # ── Attach RIGHT axes ---------------------------------------------
+        right_active_cols = [
+            c for c in range(ncol)
+            if any(not _blank(right_grid[r][c]) for r in range(nrow))
+        ]
+        for panel_c0 in right_active_cols:
+            panel_c = panel_c0 + 1
+            widths_cm = [
+                _axis_width_cm(right_grid[r][panel_c0])
+                for r in range(nrow) if not _blank(right_grid[r][panel_c0])
+            ]
+            w = max(widths_cm) if widths_cm else 0
+            cur = panel_col_to_gtable[panel_c]
+            # Insert AFTER current panel col (pos=cur).
+            gt = gtable_add_cols(gt, unit([w], "cm"), pos=cur)
+            ax_col = cur + 1
+            for cc in range(panel_c + 1, ncol + 1):
+                panel_col_to_gtable[cc] += 1
+            for r in range(nrow):
+                g = right_grid[r][panel_c0]
+                if not _blank(g):
+                    gt = gtable_add_grob(
+                        gt, g, t=panel_row_to_gtable[r + 1], l=ax_col,
+                        clip="off", name=f"axis-r-{r + 1}-{panel_c}",
+                    )
 
-        # ── Strip labels — pass col_offset so strips align with panels
+        # ── Attach BOTTOM axes --------------------------------------------
+        bottom_active_rows = [
+            r for r in range(nrow)
+            if any(not _blank(bottom_grid[r][c]) for c in range(ncol))
+        ]
+        for panel_r0 in bottom_active_rows:
+            panel_r = panel_r0 + 1
+            heights_cm = [
+                _axis_height_cm(bottom_grid[panel_r0][c])
+                for c in range(ncol) if not _blank(bottom_grid[panel_r0][c])
+            ]
+            h = max(heights_cm) if heights_cm else 0
+            cur = panel_row_to_gtable[panel_r]
+            gt = gtable_add_rows(gt, unit([h], "cm"), pos=cur)
+            ax_row = cur + 1
+            for rr in range(panel_r + 1, nrow + 1):
+                panel_row_to_gtable[rr] += 1
+            for c in range(ncol):
+                g = bottom_grid[panel_r0][c]
+                if not _blank(g):
+                    gt = gtable_add_grob(
+                        gt, g, t=ax_row, l=panel_col_to_gtable[c + 1],
+                        clip="off", name=f"axis-b-{panel_r}-{c + 1}",
+                    )
+
+        # ── Attach TOP axes -----------------------------------------------
+        top_active_rows = [
+            r for r in range(nrow)
+            if any(not _blank(top_grid[r][c]) for c in range(ncol))
+        ]
+        for panel_r0 in top_active_rows:
+            panel_r = panel_r0 + 1
+            heights_cm = [
+                _axis_height_cm(top_grid[panel_r0][c])
+                for c in range(ncol) if not _blank(top_grid[panel_r0][c])
+            ]
+            h = max(heights_cm) if heights_cm else 0
+            cur = panel_row_to_gtable[panel_r]
+            gt = gtable_add_rows(gt, unit([h], "cm"), pos=cur - 1)
+            ax_row = cur
+            for rr in range(panel_r, nrow + 1):
+                panel_row_to_gtable[rr] += 1
+            for c in range(ncol):
+                g = top_grid[panel_r0][c]
+                if not _blank(g):
+                    gt = gtable_add_grob(
+                        gt, g, t=ax_row, l=panel_col_to_gtable[c + 1],
+                        clip="off", name=f"axis-t-{panel_r}-{c + 1}",
+                    )
+
+        # Strip labels receive the panel→gtable offset maps so they align
+        # with panels whichever interleaving pattern the axes used.
+        col_offset_for_first_panel = panel_col_to_gtable[1] - 1
         gt = self._add_strip_labels(
-            gt, layout, nrow, ncol, params, theme, col_offset=col_offset,
+            gt, layout, nrow, ncol, params, theme,
+            col_offset=col_offset_for_first_panel,
+            panel_col_to_gtable=panel_col_to_gtable,
+            panel_row_to_gtable=panel_row_to_gtable,
         )
 
         return gt
@@ -693,6 +772,8 @@ class Facet(GGProto):
         params: Dict[str, Any],
         theme: Any = None,
         col_offset: int = 0,
+        panel_col_to_gtable: Optional[Dict[int, int]] = None,
+        panel_row_to_gtable: Optional[Dict[int, int]] = None,
     ) -> Any:
         """Add facet strip text labels to the gtable.
 
@@ -960,6 +1041,92 @@ class Facet(GGProto):
         list of str
         """
         return []
+
+    # ------------------------------------------------------------------
+    # set_panel_size — R facet-.R:725-770 — enforce theme panel.widths /
+    # panel.heights on the assembled gtable. ``layout.py`` calls this
+    # immediately after ``draw_panels`` so the size override works for
+    # every Facet subclass without each having to call it explicitly.
+    # ------------------------------------------------------------------
+    def set_panel_size(self, table: Any, theme: Any) -> Any:
+        """Resize panel rows / columns to match theme settings.
+
+        Looks up ``panel.widths`` and ``panel.heights`` via
+        :func:`theme_elements.calc_element`. If either is set, finds the
+        gtable rows / columns whose grobs are panels (name starts with
+        ``"panel"``) and overwrites their sizes with the theme values.
+
+        Matches the common case in R; the aspect-ratio reconstruction
+        single-panel special case (facet-.R:737-750) is intentionally
+        not ported yet.
+        """
+        if table is None or theme is None:
+            return table
+        try:
+            from ggplot2_py.theme_elements import calc_element as _calc
+        except Exception:
+            return table
+
+        new_widths = _calc("panel.widths", theme)
+        new_heights = _calc("panel.heights", theme)
+        if new_widths is None and new_heights is None:
+            return table
+
+        # Scan the gtable layout for panel cells. Names matching "panel*"
+        # are the R convention (``draw_panels`` uses ``name=f"panel-{r}-{c}"``).
+        layout = getattr(table, "layout", None)
+        if not isinstance(layout, dict):
+            return table
+        names = layout.get("name") or []
+        t_pos = layout.get("t") or []
+        l_pos = layout.get("l") or []
+
+        panel_rows: List[int] = []
+        panel_cols: List[int] = []
+        for i, nm in enumerate(names):
+            if not isinstance(nm, str) or not nm.startswith("panel"):
+                continue
+            if i < len(t_pos):
+                panel_rows.append(int(t_pos[i]))
+            if i < len(l_pos):
+                panel_cols.append(int(l_pos[i]))
+        panel_rows = sorted(set(panel_rows))
+        panel_cols = sorted(set(panel_cols))
+
+        def _broadcast(value: Any, n: int) -> List[Any]:
+            # R: if length-1, recycle; if length matches n, use as-is.
+            try:
+                length = len(value)
+            except TypeError:
+                return [value] * n
+            if length == 1:
+                return [value[0]] * n
+            if length == n:
+                return list(value)
+            # Mismatched length — bail out rather than silently mis-align.
+            return []
+
+        if new_widths is not None and panel_cols:
+            widths = _broadcast(new_widths, len(panel_cols))
+            tbl_widths = getattr(table, "widths", None)
+            if widths and tbl_widths is not None:
+                for c, w in zip(panel_cols, widths):
+                    try:
+                        tbl_widths[c] = w
+                    except (TypeError, IndexError):
+                        pass
+
+        if new_heights is not None and panel_rows:
+            heights = _broadcast(new_heights, len(panel_rows))
+            tbl_heights = getattr(table, "heights", None)
+            if heights and tbl_heights is not None:
+                for r, h in zip(panel_rows, heights):
+                    try:
+                        tbl_heights[r] = h
+                    except (TypeError, IndexError):
+                        pass
+
+        return table
 
 
 # ---------------------------------------------------------------------------
