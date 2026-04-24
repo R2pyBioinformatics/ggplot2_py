@@ -125,12 +125,13 @@ def _n2mfrow(n: int) -> Tuple[int, int]:
     return (math.ceil(math.sqrt(n / asp)), math.ceil(math.sqrt(n * asp)))
 
 
-def _wrap_dims(n: int, nrow: Optional[int] = None, ncol: Optional[int] = None) -> Tuple[int, int]:
+def wrap_dims(n: int, nrow: Optional[int] = None, ncol: Optional[int] = None) -> Tuple[int, int]:
     """Compute grid dimensions for *n* panels.
 
     Mirrors R's ``wrap_dims()`` (facet-wrap.R:478-493): when both
     nrow and ncol are ``NULL``, uses ``n2mfrow`` and swaps the axes
-    so n=3 → 1×3 (not 2×2).
+    so n=3 → 1×3 (not 2×2). R exports ``wrap_dims`` publicly
+    (NAMESPACE:757); this Python port matches that visibility.
 
     Parameters
     ----------
@@ -163,6 +164,85 @@ def _wrap_dims(n: int, nrow: Optional[int] = None, ncol: Optional[int] = None) -
             "Increase nrow and/or ncol."
         )
     return nrow, ncol
+
+
+def max_height(grobs: Any, value_only: bool = False) -> Any:
+    """Largest height over a list of grobs / units, returned in cm.
+
+    Port of R ``facet-.R:1237-1241``:
+
+    .. code-block:: R
+
+        max_height <- function(grobs, value_only = FALSE) {
+          height <- max(unlist(lapply(grobs, height_cm)))
+          if (!value_only) height <- unit(height, "cm")
+          height
+        }
+
+    R NAMESPACE exports this (``export(max_height)``); Python port
+    matches that visibility. Used by patchwork's
+    ``R/collect_axes.R:173`` and other ggplot2-extension packages.
+
+    Parameters
+    ----------
+    grobs : iterable of Grob / Unit / numeric
+        Elements whose heights are compared.
+    value_only : bool, default False
+        If True, return a bare float in cm; otherwise return a
+        ``grid_py.Unit`` carrying cm.
+
+    Returns
+    -------
+    grid_py.Unit or float
+    """
+    from ._utils import height_cm
+    from grid_py import Unit
+
+    heights = [np.atleast_1d(height_cm(g)) for g in grobs]
+    if len(heights) == 0:
+        h = float("-inf")
+    else:
+        h = float(np.max(np.concatenate(heights)))
+    if value_only:
+        return h
+    return Unit(h, "cm")
+
+
+def max_width(grobs: Any, value_only: bool = False) -> Any:
+    """Largest width over a list of grobs / units, returned in cm.
+
+    Port of R ``facet-.R:1244-1248``:
+
+    .. code-block:: R
+
+        max_width <- function(grobs, value_only = FALSE) {
+          width <- max(unlist(lapply(grobs, width_cm)))
+          if (!value_only) width <- unit(width, "cm")
+          width
+        }
+
+    R NAMESPACE exports this (``export(max_width)``).
+
+    Parameters
+    ----------
+    grobs : iterable of Grob / Unit / numeric
+    value_only : bool, default False
+
+    Returns
+    -------
+    grid_py.Unit or float
+    """
+    from ._utils import width_cm
+    from grid_py import Unit
+
+    widths = [np.atleast_1d(width_cm(g)) for g in grobs]
+    if len(widths) == 0:
+        w = float("-inf")
+    else:
+        w = float(np.max(np.concatenate(widths)))
+    if value_only:
+        return w
+    return Unit(w, "cm")
 
 
 def _resolve_facet_vars(facets: Any) -> List[str]:
@@ -1343,7 +1423,7 @@ class FacetWrap(Facet):
 
         base = base.drop_duplicates().reset_index(drop=True)
         n = len(base)
-        dims = _wrap_dims(n, nrow, ncol)
+        dims = wrap_dims(n, nrow, ncol)
 
         # Assign PANEL, ROW, COL
         ids = np.arange(1, n + 1)

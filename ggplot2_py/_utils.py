@@ -474,47 +474,99 @@ def interleave(*args: Sequence[Any]) -> list:
 # ---------------------------------------------------------------------------
 
 def width_cm(x: Any) -> Union[float, np.ndarray]:
-    """Convert a grid unit to centimetres (width / x-axis).
+    """Convert a grid unit / grob / list to centimetres (width / x-axis).
+
+    Port of R ``utilities-grid.R:67-77``:
+
+    .. code-block:: R
+
+        width_cm <- function(x) {
+          if (is.grob(x))      convertWidth(grobWidth(x), "cm", TRUE)
+          else if (is.unit(x)) convertWidth(x, "cm", TRUE)
+          else if (is.list(x)) vapply(x, width_cm, numeric(1))
+          else                 cli_abort(...)
+        }
 
     Parameters
     ----------
-    x : Unit or numeric
-        A ``grid_py.Unit`` object or a plain number (assumed to be in
-        centimetres already).
+    x : Grob, Unit, list / tuple, or numeric
+        A grob, a ``grid_py.Unit``, a list of the same, or a plain number
+        (the numeric form is a Python-side convenience for call sites
+        that already have cm values).
 
     Returns
     -------
     float or np.ndarray
         The width in centimetres.
     """
-    from grid_py import Unit, convert_unit
+    from grid_py import Unit, convert_unit, is_grob, grob_width
 
+    if is_grob(x):
+        return convert_unit(grob_width(x), "cm",
+                            axisFrom="x", typeFrom="dimension",
+                            valueOnly=True)
     if isinstance(x, Unit):
-        result = convert_unit(x, "cm", axisFrom="x", typeFrom="dimension", valueOnly=True)
-        return result
-    return float(x) if np.isscalar(x) else np.asarray(x, dtype=float)
+        return convert_unit(x, "cm", axisFrom="x",
+                            typeFrom="dimension", valueOnly=True)
+    if isinstance(x, (list, tuple)):
+        # R: vapply(x, width_cm, numeric(1)) — but grob/unit paths may
+        # return length-1 arrays, so np.atleast_1d + concatenate gives
+        # R-identical flattened behaviour.
+        if len(x) == 0:
+            return np.array([], dtype=float)
+        return np.concatenate([np.atleast_1d(width_cm(el)) for el in x])
+    if np.isscalar(x):
+        return float(x)
+    if isinstance(x, np.ndarray):
+        return np.asarray(x, dtype=float)
+    raise TypeError(
+        f"Don't know how to get width of {type(x).__name__!r} object"
+    )
 
 
 def height_cm(x: Any) -> Union[float, np.ndarray]:
-    """Convert a grid unit to centimetres (height / y-axis).
+    """Convert a grid unit / grob / list to centimetres (height / y-axis).
+
+    Port of R ``utilities-grid.R:78-88``:
+
+    .. code-block:: R
+
+        height_cm <- function(x) {
+          if (is.grob(x))      convertHeight(grobHeight(x), "cm", TRUE)
+          else if (is.unit(x)) convertHeight(x, "cm", TRUE)
+          else if (is.list(x)) vapply(x, height_cm, numeric(1))
+          else                 cli_abort(...)
+        }
 
     Parameters
     ----------
-    x : Unit or numeric
-        A ``grid_py.Unit`` object or a plain number (assumed to be in
-        centimetres already).
+    x : Grob, Unit, list / tuple, or numeric
 
     Returns
     -------
     float or np.ndarray
         The height in centimetres.
     """
-    from grid_py import Unit, convert_unit
+    from grid_py import Unit, convert_unit, is_grob, grob_height
 
+    if is_grob(x):
+        return convert_unit(grob_height(x), "cm",
+                            axisFrom="y", typeFrom="dimension",
+                            valueOnly=True)
     if isinstance(x, Unit):
-        result = convert_unit(x, "cm", axisFrom="y", typeFrom="dimension", valueOnly=True)
-        return result
-    return float(x) if np.isscalar(x) else np.asarray(x, dtype=float)
+        return convert_unit(x, "cm", axisFrom="y",
+                            typeFrom="dimension", valueOnly=True)
+    if isinstance(x, (list, tuple)):
+        if len(x) == 0:
+            return np.array([], dtype=float)
+        return np.concatenate([np.atleast_1d(height_cm(el)) for el in x])
+    if np.isscalar(x):
+        return float(x)
+    if isinstance(x, np.ndarray):
+        return np.asarray(x, dtype=float)
+    raise TypeError(
+        f"Don't know how to get height of {type(x).__name__!r} object"
+    )
 
 
 # ---------------------------------------------------------------------------

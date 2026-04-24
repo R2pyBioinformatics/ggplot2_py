@@ -492,6 +492,9 @@ from ggplot2_py.facet import (
     facet_grid,
     facet_wrap,
     is_facet,
+    wrap_dims,
+    max_height,
+    max_width,
 )
 
 # ---------------------------------------------------------------------------
@@ -810,7 +813,8 @@ __all__ = [
     "coord_munch", "is_coord",
     # Facets
     "Facet", "FacetNull", "FacetGrid", "FacetWrap",
-    "facet_null", "facet_grid", "facet_wrap", "is_facet",
+    "facet_null", "facet_grid", "facet_wrap", "is_facet", "wrap_dims",
+    "max_height", "max_width",
     # Positions
     "Position", "PositionIdentity", "PositionDodge", "PositionDodge2",
     "PositionJitter", "PositionJitterdodge", "PositionNudge",

@@ -14,7 +14,7 @@ from ggplot2_py.facet import (
     facet_wrap,
     is_facet,
     _layout_null,
-    _wrap_dims,
+    wrap_dims,
     _resolve_facet_vars,
     _combine_vars,
     _map_facet_data,
@@ -42,34 +42,34 @@ class TestLayoutNull:
 
 class TestWrapDims:
     def test_auto(self):
-        nrow, ncol = _wrap_dims(4)
+        nrow, ncol = wrap_dims(4)
         assert nrow * ncol >= 4
 
     def test_nrow_given(self):
-        nrow, ncol = _wrap_dims(6, nrow=2)
+        nrow, ncol = wrap_dims(6, nrow=2)
         assert nrow == 2
         assert ncol == 3
 
     def test_ncol_given(self):
-        nrow, ncol = _wrap_dims(6, ncol=3)
+        nrow, ncol = wrap_dims(6, ncol=3)
         assert nrow == 2
         assert ncol == 3
 
     def test_both_given(self):
-        nrow, ncol = _wrap_dims(6, nrow=2, ncol=3)
+        nrow, ncol = wrap_dims(6, nrow=2, ncol=3)
         assert nrow == 2
         assert ncol == 3
 
     def test_too_small(self):
         with pytest.raises(Exception):
-            _wrap_dims(10, nrow=2, ncol=2)
+            wrap_dims(10, nrow=2, ncol=2)
 
     def test_single_panel(self):
-        nrow, ncol = _wrap_dims(1)
+        nrow, ncol = wrap_dims(1)
         assert nrow * ncol >= 1
 
     def test_prime_number(self):
-        nrow, ncol = _wrap_dims(7)
+        nrow, ncol = wrap_dims(7)
         assert nrow * ncol >= 7
 
 
