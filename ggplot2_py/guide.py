@@ -3193,7 +3193,11 @@ class Guides:
         Returns
         -------
         dict
-            Mapping of position -> gtable (one per position).
+            Mapping of position -> gtable (``"top"``, ``"right"``,
+            ``"bottom"``, ``"left"``, ``"inside"``).  Missing positions
+            are set to ``None`` (R uses ``zeroGrob()``).  Returns
+            ``None`` when ``theme$legend.position == "none"`` or when
+            no guides have been registered.
         """
         if not self.guides:
             return None
@@ -3206,6 +3210,18 @@ class Guides:
                 pass
         elif hasattr(theme, "legend_position"):
             default_position = theme.legend_position or "right"
+
+        # Numeric 2-vector -> inside placement (R: guides-.R:481-483).
+        if isinstance(default_position, (list, tuple, np.ndarray)) and len(
+            default_position
+        ) == 2:
+            default_position = "inside"
+
+        # R: legend.position="none" suppresses all legends.
+        if default_position == "none":
+            return None
+        if default_position not in ("top", "right", "bottom", "left", "inside"):
+            return None
 
         positions = []
         for p in self.params:
@@ -3224,7 +3240,10 @@ class Guides:
                 continue
             groups.setdefault(pos, []).append(g)
 
-        out: Dict[str, Any] = {}
+        # Emit all five R slot keys; missing positions -> None (caller
+        # may treat as zeroGrob, matching R's
+        # ``grobs[setdiff(c(.trbl, "inside"), names(grobs))] <- list(zeroGrob())``).
+        out: Dict[str, Any] = {k: None for k in ("top", "right", "bottom", "left", "inside")}
         for pos, group_grobs in groups.items():
             out[pos] = self.package_box(group_grobs, pos, theme)
         return out

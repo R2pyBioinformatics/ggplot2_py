@@ -332,7 +332,13 @@ def _table_add_legends(
         return table
 
     import math
-    from gtable_py import gtable_add_grob, gtable_add_cols, gtable_width, gtable_height
+    from gtable_py import (
+        gtable_add_grob,
+        gtable_add_cols,
+        gtable_add_rows,
+        gtable_width,
+        gtable_height,
+    )
     from grid_py import Unit as unit, text_grob, Gpar
 
     from ggplot2_py.guide_legend import (
@@ -343,6 +349,45 @@ def _table_add_legends(
         assemble_legend,
         package_legend_box,
     )
+
+    # ------------------------------------------------------------------
+    # Theme legend.position resolution — R's ``default_position`` from
+    # ``Guides$assemble`` (``guides-.R:480-486``).  When set to
+    # ``"none"`` R short-circuits and no legends are drawn.  When a
+    # numeric 2-vector is supplied it means inside placement.
+    # ------------------------------------------------------------------
+    from ggplot2_py.theme_elements import calc_element as _calc_legend_pos_el
+
+    _default_position: Any = None
+    if theme is not None:
+        try:
+            _default_position = _calc_legend_pos_el("legend.position", theme)
+        except Exception:
+            _default_position = None
+        if _default_position is None:
+            _default_position = theme.get("legend.position") if hasattr(
+                theme, "get"
+            ) else None
+    if _default_position is None:
+        _default_position = "right"
+
+    # Numeric 2-vector → "inside"
+    if isinstance(_default_position, (list, tuple, np.ndarray)) and len(
+        _default_position
+    ) == 2 and all(
+        isinstance(v, (int, float, np.integer, np.floating))
+        for v in _default_position
+    ):
+        _default_position = "inside"
+
+    # R parity: legend.position="none" suppresses every legend.
+    if _default_position == "none":
+        return table
+
+    if _default_position not in ("top", "right", "bottom", "left", "inside"):
+        # Unknown position — fall back to right (R's behaviour is to emit
+        # a zeroGrob at ``assemble`` time).
+        _default_position = "right"
 
     # ------------------------------------------------------------------
     # 1. Collect raw legend entries from non-position scales
@@ -363,6 +408,7 @@ def _table_add_legends(
     # GuideNone entries, so read from there. Also support the pre-build
     # dict form for robustness.
     suppressed_aes: set = set()
+    user_guide_by_aes: Dict[str, Any] = {}
     if guides is not None:
         from ggplot2_py.guide import GuideNone
 
@@ -379,6 +425,30 @@ def _table_add_legends(
                     or isinstance(av, GuideNone)
                 ):
                     suppressed_aes.add(ak)
+                else:
+                    user_guide_by_aes[ak] = av
+
+    # ------------------------------------------------------------------
+    # Per-entry position resolution. Mirrors R's ``Guides$assemble``
+    # (guides-.R:488-493) where each guide's ``params$position[1]`` is
+    # used, falling back to ``default_position``.  For Python we read
+    # ``params["position"]`` on the user-supplied guide object (if any)
+    # or on the scale-attached guide object.
+    # ------------------------------------------------------------------
+    def _resolve_entry_position(aes_name: str, scale_obj: Any) -> str:
+        # User ``guides(<aes>=guide_legend(position=...))`` override.
+        g_user = user_guide_by_aes.get(aes_name)
+        if g_user is not None and hasattr(g_user, "params"):
+            pos = g_user.params.get("position")
+            if pos:
+                return pos
+        # Scale-level ``scale_<aes>_*(guide = guide_legend(position=...))``.
+        sc_guide = getattr(scale_obj, "guide", None) if scale_obj is not None else None
+        if sc_guide is not None and hasattr(sc_guide, "params"):
+            pos = sc_guide.params.get("position")
+            if pos:
+                return pos
+        return _default_position
 
     for sc in np_scales.scales:
         aes_name = sc.aesthetics[0] if sc.aesthetics else "unknown"
@@ -447,6 +517,7 @@ def _table_add_legends(
             "is_continuous": not getattr(sc, "is_discrete", lambda: True)(),
             "is_binned": sc.__class__.__name__.startswith("ScaleBinned") or
                          getattr(sc, "guide", None) in ("bins", "coloursteps"),
+            "position": _resolve_entry_position(aes_name, sc),
         })
 
     if not raw_entries:
@@ -470,6 +541,7 @@ def _table_add_legends(
                 "scale": entry.get("scale"),
                 "is_continuous": entry.get("is_continuous", False),
                 "is_binned": entry.get("is_binned", False),
+                "position": entry.get("position", _default_position),
             }
     entries = list(merged.values())
 
@@ -607,7 +679,8 @@ def _table_add_legends(
             margin_x=True, margin_y=True,
         )
 
-    legend_gtables = []
+    legend_gtables: List[Any] = []
+    legend_positions: List[str] = []
 
     for entry in entries:
         n_breaks = len(entry["breaks"])
@@ -619,6 +692,12 @@ def _table_add_legends(
         is_continuous = entry.get("is_continuous", False)
         is_binned = entry.get("is_binned", False)
         sc = entry.get("scale")
+        entry_pos = entry.get("position") or _default_position
+        # R parity (guides-.R:574-577): direction defaults to "horizontal"
+        # for top/bottom, "vertical" for left/right/inside.
+        _entry_direction = (
+            "horizontal" if entry_pos in ("top", "bottom") else "vertical"
+        )
 
         # --- Coloursteps path: binned colour/fill scale ---
         if is_colour_fill and is_binned and sc is not None:
@@ -659,6 +738,7 @@ def _table_add_legends(
                 bg_colour="white",
             )
             legend_gtables.append(legend_gt)
+            legend_positions.append(entry_pos)
             continue
 
         # --- Colourbar path: continuous colour/fill scale ---
@@ -703,6 +783,7 @@ def _table_add_legends(
                 bg_colour="white",
             )
             legend_gtables.append(legend_gt)
+            legend_positions.append(entry_pos)
             continue
 
         # --- Legend path: discrete scales ---
@@ -714,8 +795,17 @@ def _table_add_legends(
         # positions were computed by ``arrange_legend_layout`` but only
         # one column width was allocated in the gtable), producing
         # overlapping key + label glyphs per row.
-        ncol = max(1, math.ceil(n_breaks / 20))
-        nrow = max(1, math.ceil(n_breaks / ncol))
+        # R ``GuideLegend$setup_params`` (``guide-legend.R:286-298``):
+        # horizontal direction defaults to ``nrow = ceiling(n_breaks / 20)``
+        # then ``ncol = ceiling(n_breaks / nrow)``; vertical mirrors the
+        # transpose (ncol first).  ``_entry_direction`` was set above
+        # based on the resolved legend position.
+        if _entry_direction == "horizontal":
+            nrow = max(1, math.ceil(n_breaks / 20))
+            ncol = max(1, math.ceil(n_breaks / nrow))
+        else:
+            ncol = max(1, math.ceil(n_breaks / 20))
+            nrow = max(1, math.ceil(n_breaks / ncol))
 
         # Per-entry draw_key: mirror R's ``matched_aes`` /
         # ``include_layer_in_guide`` so ``geom_segment`` / ``geom_path``
@@ -767,37 +857,124 @@ def _table_add_legends(
             bg_colour="white",
         )
         legend_gtables.append(legend_gt)
+        legend_positions.append(entry_pos)
 
     if not legend_gtables:
         return table
 
     # ------------------------------------------------------------------
-    # 6. Package multiple legends into a guide-box
-    # ------------------------------------------------------------------
-    guide_box = package_legend_box(
-        legend_gtables, position="right",
-        spacing_cm=legend_spacing,
-    )
-
-    # ------------------------------------------------------------------
-    # 7. Place guide-box in the plot table
-    #    Mirrors R's table_add_legends (plot-render.R:98-105)
+    # 6. Package legends into per-position guide boxes — R parity with
+    #    ``Guides$assemble`` (``guides-.R:474-568``) which groups drawn
+    #    grobs by position and routes each group through ``package_box``.
     # ------------------------------------------------------------------
     from ggplot2_py.guide_legend import _gtable_total_cm
 
-    guide_w_cm = _gtable_total_cm(guide_box.widths)
-    guide_w_cm = max(guide_w_cm, 1.0)
+    # Group legend gtables by their resolved position.
+    position_groups: Dict[str, List[Any]] = {}
+    for _gt, _pos in zip(legend_gtables, legend_positions):
+        position_groups.setdefault(_pos, []).append(_gt)
 
-    # R: place <- find_panel(table); t=place$t, b=place$b  (plot-render.R:96-104)
-    place = find_panel(table)
+    # Package each position group (``Guides$package_box``,
+    # ``guides-.R:592-757``).  Non-empty R positions get a real gtable;
+    # positions with no guides get a zero placeholder.
+    packaged_boxes: Dict[str, Any] = {}
+    for _pos, _grobs in position_groups.items():
+        packaged_boxes[_pos] = package_legend_box(
+            _grobs, position=_pos, spacing_cm=legend_spacing,
+        )
 
-    table = gtable_add_cols(table, unit([legend_spacing], "cm"), pos=-1)
-    table = gtable_add_cols(table, unit([guide_w_cm], "cm"), pos=-1)
-    ncol_t = len(table._widths)
-    table = gtable_add_grob(
-        table, guide_box, t=place["t"], b=place["b"], l=ncol_t,
-        clip="off", name="guide-box-right",
-    )
+    # ------------------------------------------------------------------
+    # 7. Place packaged guide boxes into the plot table — R parity with
+    #    ``table_add_legends`` (``plot-render.R:68-145``).  R inserts
+    #    right, left, bottom, top boxes at the plot-table extrema and
+    #    the "inside" box at the panel cell.
+    # ------------------------------------------------------------------
+    # Right legend ---------------------------------------------------------
+    if "right" in packaged_boxes:
+        box = packaged_boxes["right"]
+        w_cm = max(_gtable_total_cm(box.widths), 1.0)
+        place = find_panel(table)
+        table = gtable_add_cols(table, unit([legend_spacing], "cm"), pos=-1)
+        table = gtable_add_cols(table, unit([w_cm], "cm"), pos=-1)
+        ncol_t = len(table._widths)
+        table = gtable_add_grob(
+            table, box, t=place["t"], b=place["b"], l=ncol_t,
+            clip="off", name="guide-box-right",
+        )
+
+    # Left legend ----------------------------------------------------------
+    if "left" in packaged_boxes:
+        box = packaged_boxes["left"]
+        w_cm = max(_gtable_total_cm(box.widths), 1.0)
+        # R inserts spacing at pos=0 first, then the legend column at
+        # pos=0 — so the final order left-to-right is [legend, spacing,
+        # ...existing...]. The ``find_panel`` call happens BEFORE the
+        # column insertions so the panel rows are still accurate.
+        place = find_panel(table)
+        table = gtable_add_cols(table, unit([legend_spacing], "cm"), pos=0)
+        table = gtable_add_cols(table, unit([w_cm], "cm"), pos=0)
+        table = gtable_add_grob(
+            table, box, t=place["t"], b=place["b"], l=1,
+            clip="off", name="guide-box-left",
+        )
+
+    # Bottom legend --------------------------------------------------------
+    if "bottom" in packaged_boxes:
+        box = packaged_boxes["bottom"]
+        h_cm = max(_gtable_total_cm(box.heights), 0.5)
+        place = find_panel(table)
+        table = gtable_add_rows(table, unit([legend_spacing], "cm"), pos=-1)
+        table = gtable_add_rows(table, unit([h_cm], "cm"), pos=-1)
+        nrow_t = len(table._heights)
+        table = gtable_add_grob(
+            table, box, t=nrow_t, b=nrow_t, l=place["l"], r=place["r"],
+            clip="off", name="guide-box-bottom",
+        )
+
+    # Top legend -----------------------------------------------------------
+    if "top" in packaged_boxes:
+        box = packaged_boxes["top"]
+        h_cm = max(_gtable_total_cm(box.heights), 0.5)
+        # R: ``table <- gtable_add_rows(table, spacing$top, pos = 0)``
+        # then ``gtable_add_rows(table, heights$top, pos = 0)`` — so
+        # final ordering top-to-bottom is [legend, spacing, ...existing...].
+        place = find_panel(table)
+        table = gtable_add_rows(table, unit([legend_spacing], "cm"), pos=0)
+        table = gtable_add_rows(table, unit([h_cm], "cm"), pos=0)
+        table = gtable_add_grob(
+            table, box, t=1, b=1, l=place["l"], r=place["r"],
+            clip="off", name="guide-box-top",
+        )
+
+    # Inside legend --------------------------------------------------------
+    # R uses ``legend.position.inside`` / ``legend.justification.inside``
+    # to place the inside box at the panel cell without altering the plot
+    # gtable's row/column count.  The semantics of inside placement rely
+    # on viewport justification within ``Guides$package_box`` which is
+    # only partially wired in the Python port — see TODO below.
+    if "inside" in packaged_boxes:
+        box = packaged_boxes["inside"]
+        place = find_panel(table)
+        table = gtable_add_grob(
+            table, box,
+            t=place["t"], b=place["b"],
+            l=place["l"], r=place["r"],
+            clip="off", name="guide-box-inside",
+        )
+        # TODO: ``legend.position.inside`` + ``legend.justification.inside``
+        # viewport resolution is deferred — Python places the inside
+        # guide-box at the panel cell only, not at a user-supplied
+        # ``c(x, y)`` coordinate.  Matches R's gtable placement but
+        # without the viewport-based x/y justification.
+        from ggplot2_py._compat import cli_warn
+
+        cli_warn(
+            "Inside legend placement uses panel-cell geometry only. "
+            "`legend.position.inside = c(x, y)` and "
+            "`legend.justification.inside` are not yet wired through "
+            "the viewport pipeline — the guide-box will appear at the "
+            "panel centre."
+        )
 
     return table
 
