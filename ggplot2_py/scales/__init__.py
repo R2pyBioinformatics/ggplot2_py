@@ -371,11 +371,33 @@ def _manual_scale(
                 named_values[b] = values_list[i]
         values = named_values
 
+    # Mirror R `manual_scale` (ggplot2/R/scale-manual.R:183-188):
+    #
+    #   pal <- function(n) {
+    #     if (n > length(values)) {
+    #       cli::cli_abort("Insufficient values in manual scale. ...")
+    #     }
+    #     values
+    #   }
+    #
+    # In R `values` is a (possibly named) atomic vector and the palette
+    # always returns it whole — names included; the count check is a
+    # guard, not a slice.  ``ScaleDiscrete$map`` then dispatches on
+    # ``names(pal)`` to decide name vs position lookup.  We mirror that
+    # split here: dict → named palette branch (returned as-is), list →
+    # unnamed branch (sliced to ``n`` to match the existing call sites
+    # that index positionally).  In both branches we keep R's
+    # ``n > length(values)`` abort so misuse fails the same way.
     if isinstance(values, dict):
-        _vals = values
+        _vals = dict(values)
+        _n_vals = len(_vals)
 
-        def pal(n: int) -> list:
-            return list(_vals.values())[:n] if len(_vals) >= n else list(_vals.values())
+        def pal(n: int) -> dict:
+            if n > _n_vals:
+                cli_abort(
+                    f"Insufficient values in manual scale. {n} needed but only {_n_vals} provided."
+                )
+            return _vals
     else:
         _vals_list = list(values)
 

@@ -1151,14 +1151,65 @@ class ScaleDiscrete(Scale):
         x_str = [str(v) for v in np.asarray(x)]
         limits_str = [str(l) for l in limits]
 
+        na_val = self.na_value if self.na_translate else np.nan
+
+        # ---- Named-palette path (R: ggplot2/R/scale-.R:1322-1340) -------
+        # When the palette function returned a *named* mapping (i.e. a
+        # ``dict`` carrying value→aesthetic pairs), R's algorithm is:
+        #
+        #   pal_names <- names(pal)
+        #   if (!is.null(pal_names)) {
+        #     pal[is.na(match(pal_names, limits))] <- na_value   # (a)
+        #     pal <- vec_set_names(pal, NULL)
+        #     limits <- pal_names                                 # (b)
+        #   }
+        #   pal <- c(pal, na_value)                               # (c)
+        #   pal_match <- vec_slice(
+        #     pal, match(as.character(x), limits, nomatch = vec_size(pal))
+        #   )                                                     # (d)
+        #
+        # Crucially:
+        #   * (a) blanks pal entries whose names are *not* in the original
+        #     limits — so an out-of-data category looked up explicitly via
+        #     map(value) returns na_value rather than the user's colour;
+        #   * (b) reassigns ``limits`` to ``pal_names`` so the subsequent
+        #     match is by name (encoded as a position lookup against the
+        #     full named-vector key list);
+        #   * (c) appends na_value as a sentinel at position ``len(pal)``;
+        #   * (d) ``match`` returns ``len(pal)`` for unmatched x, which
+        #     ``vec_slice`` turns into the appended na_value.
+        #
+        # The Python translation below is structurally identical; only
+        # surface idioms differ (dict comprehension instead of
+        # ``vec_slice`` / ``match``).
         if isinstance(pal, dict):
-            pal_list = list(pal.values())
-        elif isinstance(pal, np.ndarray):
+            pal_named = {str(k): v for k, v in pal.items()}
+            limits_set = set(limits_str)
+            # (a) blank entries whose name is not in the original limits.
+            pal_filtered = [
+                (v if k in limits_set else na_val)
+                for k, v in pal_named.items()
+            ]
+            # (b) limits ← pal_names.
+            new_limits = list(pal_named.keys())
+            # (c) append na_value sentinel for unmatched positions.
+            sentinel_idx = len(pal_filtered)
+            pal_with_sentinel = pal_filtered + [na_val]
+            # (d) positional lookup via match(x, new_limits).
+            result = []
+            for v in x_str:
+                try:
+                    idx = new_limits.index(v)
+                except ValueError:
+                    idx = sentinel_idx
+                result.append(pal_with_sentinel[idx])
+            return np.array(result)
+
+        # ---- Unnamed-palette path (R: same map(), pal_names is NULL) ----
+        if isinstance(pal, np.ndarray):
             pal_list = list(pal)
         else:
             pal_list = list(pal) if hasattr(pal, "__iter__") else [pal]
-
-        na_val = self.na_value if self.na_translate else np.nan
 
         result = []
         for v in x_str:
