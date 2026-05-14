@@ -17,12 +17,14 @@ from __future__ import annotations
 import contextlib
 import contextvars
 import copy
+import inspect
 import warnings
 from functools import singledispatch
 from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -142,6 +144,14 @@ def ggplot_defaults(
     that apply to all :func:`ggplot` calls within the ``with`` block,
     without affecting code outside.
 
+    The context defaults are applied at the **end** of the :func:`ggplot`
+    factory, after the plot's intrinsic defaults
+    (``CoordCartesian(default=True)``, ``FacetNull()``, empty :class:`Theme`)
+    are set.  The context-provided ``coord`` is marked ``default=True`` so a
+    subsequent ``plot + coord_X()`` replaces it silently (matching R's
+    ``update_ggplot.Coord`` semantics on default coords —
+    ``plot-construction.R:200-215``).
+
     Parameters
     ----------
     theme : Theme or dict, optional
@@ -182,6 +192,42 @@ def ggplot_defaults(
 def _get_context_defaults() -> Dict[str, Any]:
     """Return the current scoped defaults (empty dict if none)."""
     return _ggplot_context.get()
+
+
+def _apply_context_defaults(p: "GGPlot") -> None:
+    """Overlay scoped defaults from :func:`ggplot_defaults` onto *p*.
+
+    Called from the :func:`ggplot` factory **after** the intrinsic defaults
+    (``CoordCartesian(default=True)``, ``FacetNull()``, empty :class:`Theme`)
+    have been installed, so context values can override them cleanly.
+
+    Each ctx value is shallow-copied before assignment so callers can reuse
+    the same ``coord_fixed()`` / ``facet_wrap(...)`` instance across multiple
+    ``ggplot()`` calls without us mutating their object.
+
+    For ``coord``, ``default = True`` is preserved on the copy so that a
+    later ``+ coord_X()`` replaces it silently (matches R's
+    ``update_ggplot.Coord`` short-circuit on default coords —
+    ``plot-construction.R:202``).
+    """
+    ctx = _get_context_defaults()
+    if not ctx:
+        return
+
+    if "theme" in ctx:
+        new_theme = ctx["theme"]
+        p.theme = new_theme.copy() if hasattr(new_theme, "copy") else new_theme
+
+    if "coord" in ctx:
+        p.coordinates = copy.copy(ctx["coord"])
+        p.coordinates.default = True
+
+    if "facet" in ctx:
+        p.facet = copy.copy(ctx["facet"])
+
+    if "mapping" in ctx:
+        ctx_map = ctx["mapping"]
+        p.mapping = aes(**{**ctx_map, **p.mapping})
 
 
 # ---------------------------------------------------------------------------
@@ -249,19 +295,11 @@ class GGPlot:
         self._meta: Dict[str, Any] = {}
         self._build_hooks: Dict[Tuple[str, str], List[Callable]] = {}
 
-        # Apply scoped context defaults (Python-exclusive feature).
-        ctx = _get_context_defaults()
-        if ctx:
-            if "theme" in ctx and not self.theme:
-                self.theme = ctx["theme"]
-            if "coord" in ctx and self.coordinates is None:
-                self.coordinates = ctx["coord"]
-            if "facet" in ctx and self.facet is None:
-                self.facet = ctx["facet"]
-            if "mapping" in ctx:
-                # Merge: context defaults as base, explicit mapping overrides
-                merged = aes(**{**ctx["mapping"], **self.mapping})
-                self.mapping = merged
+        # NOTE: scoped-default application (``ggplot_defaults``) is intentionally
+        # NOT done here.  It happens in the :func:`ggplot` factory via
+        # :func:`_apply_context_defaults` so that direct ``GGPlot(...)`` calls
+        # and ``_clone()`` (which uses ``copy.copy`` and skips ``__init__``) are
+        # unaffected by global context.
 
     # ------------------------------------------------------------------
     # Clone
@@ -303,9 +341,14 @@ class GGPlot:
             A :class:`BuildStage` constant (e.g.
             ``BuildStage.COMPUTE_STAT``).
         fn : callable
-            ``fn(data, **ctx) -> data_or_None``.  Receives the current
-            per-layer data list.  Return a new list to replace it, or
-            ``None`` to leave it unchanged.
+            ``fn(data, **ctx) -> list_or_anything``.  Receives the current
+            per-layer data list.  Return a new ``list`` to replace it; any
+            non-list return (including ``None``) leaves the data unchanged.
+            ``**ctx`` carries stage-specific context (``layout``, ``scales``,
+            ``guides``, ``theme``) — see :class:`BuildStage` for the per-stage
+            table.  Hook signatures are introspected, so you may declare
+            only the kwargs you want (``def fn(data, layout=None)``) or use
+            ``**kw`` to receive everything.
 
         Returns
         -------
@@ -535,6 +578,11 @@ def ggplot(
     p.coordinates.default = True
     p.facet = FacetNull()
 
+    # Scoped defaults (``ggplot_defaults`` context manager) overlay the
+    # intrinsic defaults set above.  No-op when no context is active, which
+    # preserves byte-level R parity for the bare ``ggplot(df, aes(...))`` case.
+    _apply_context_defaults(p)
+
     # R parity: ``plot$labels`` stores ONLY user-set labels.  The
     # aesthetic-derived defaults (``x="carat"``, ``y="price"`` etc.)
     # are computed lazily at render time by ``_setup_plot_labels``
@@ -596,14 +644,45 @@ class BuildStage:
     These are used with :meth:`GGPlot.add_build_hook` to register
     before/after callbacks on specific pipeline stages.  This is a
     **Python-exclusive** extension point — R's ggplot2 does not expose
-    hooks on individual build stages.
+    hooks on individual build stages — but **every stage name here
+    corresponds to a real operation in R's** ``plot-build.R``
+    ``ggplot_build.ggplot()`` method, in the same order.
 
-    Example
-    -------
-    ::
+    Per-stage available ctx kwargs
+    ------------------------------
+    The hook receives ``(data, **ctx)``.  ``data`` is always the current
+    per-layer data list.  ``**ctx`` carries side context whose set depends
+    on the stage:
 
-        p = ggplot(df, aes("x", "y"))
-        p.add_build_hook("after", BuildStage.COMPUTE_STAT, my_callback)
+    ===================== =================================================
+    Stage                  ctx keys
+    ===================== =================================================
+    LAYER_DATA             (none)
+    SETUP_LAYER            (none)
+    SETUP_LAYOUT           ``layout``
+    COMPUTE_AESTHETICS     (none)
+    TRANSFORM_SCALES       ``scales``
+    TRAIN_POSITION         ``layout``, ``scales``
+    COMPUTE_STAT           ``layout``
+    MAP_STAT               (none)
+    COMPUTE_GEOM_1         (none)
+    COMPUTE_POSITION       ``layout``
+    RETRAIN_POSITION       ``layout``, ``scales``
+    SETUP_GUIDES           ``layout``, ``guides``
+    TRAIN_NONPOSITION      ``scales`` (the non-position ScalesList)
+    COMPUTE_GEOM_2         ``theme``
+    FINISH_STAT            (none)
+    FINISH_DATA            (none)
+    ===================== =================================================
+
+    Hook signature flexibility — :func:`_run_hooks` introspects each hook
+    and forwards only ctx kwargs the hook can accept, so all of these
+    coexist::
+
+        p.add_build_hook("after", BuildStage.TRAIN_POSITION, lambda data: ...)
+        p.add_build_hook("after", BuildStage.TRAIN_POSITION, lambda data, **kw: ...)
+        p.add_build_hook("after", BuildStage.TRAIN_POSITION,
+                         lambda data, layout=None, scales=None: ...)
     """
 
     LAYER_DATA = "layer_data"
@@ -624,6 +703,26 @@ class BuildStage:
     FINISH_DATA = "finish_data"
 
 
+def _hook_accepts(hook: Callable, ctx_keys: Iterable[str]) -> Dict[str, bool]:
+    """Return a ``{ctx_key: accepted}`` map for *hook*.
+
+    A key is accepted if the hook either declares it as a named parameter or
+    declares a ``**kwargs`` catch-all.  Used by :func:`_run_hooks` to forward
+    only the ctx kwargs the hook actually wants — this is what lets
+    ``lambda data: ...`` (old-style) and ``lambda data, **ctx: ...`` and
+    ``def f(data, layout=None): ...`` all coexist without TypeErrors and
+    without resorting to ``try/except``.
+    """
+    sig = inspect.signature(hook)
+    params = sig.parameters
+    has_var_keyword = any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+    )
+    if has_var_keyword:
+        return {k: True for k in ctx_keys}
+    return {k: (k in params) for k in ctx_keys}
+
+
 def _run_hooks(
     plot: GGPlot,
     timing: str,
@@ -632,6 +731,21 @@ def _run_hooks(
     **ctx: Any,
 ) -> List[Any]:
     """Execute registered build hooks for (*timing*, *stage*).
+
+    Each hook is invoked as ``hook(data, **selected_ctx)`` where
+    ``selected_ctx`` is the subset of *ctx* that the hook actually accepts
+    (named param or ``**kwargs``).  This keeps three call styles working
+    in parallel:
+
+    * ``lambda data: ...``                       — no ctx forwarded
+    * ``lambda data, **kw: ...``                 — every ctx kwarg forwarded
+    * ``def f(data, layout=None, scales=None)``  — only matching kwargs
+
+    Hooks may return a new per-layer data list (an actual ``list``) to
+    replace the pipeline data, or any non-list value (including ``None``)
+    to leave it unchanged.  The list-only test means hooks that accidentally
+    return a scalar (``True``, the value from ``log.setdefault``, etc.)
+    don't silently corrupt downstream stages.
 
     Parameters
     ----------
@@ -644,7 +758,8 @@ def _run_hooks(
     data : list
         Current per-layer data list.
     **ctx
-        Additional context (e.g. ``layout``, ``scales``) passed to hooks.
+        Additional context.  The set of keys available depends on the
+        stage — see :class:`BuildStage` for the per-stage table.
 
     Returns
     -------
@@ -654,9 +769,14 @@ def _run_hooks(
     hooks = getattr(plot, "_build_hooks", None)
     if not hooks:
         return data
-    for hook in hooks.get((timing, stage), []):
-        result = hook(data, **ctx)
-        if result is not None:
+    targets = hooks.get((timing, stage), [])
+    if not targets:
+        return data
+    for hook in targets:
+        wanted = _hook_accepts(hook, ctx.keys())
+        kwargs = {k: v for k, v in ctx.items() if wanted.get(k, False)}
+        result = hook(data, **kwargs)
+        if isinstance(result, list):
             data = result
     return data
 
@@ -776,9 +896,11 @@ def _build_ggplot(plot):
     data = by_layer(lambda l, d: l.setup_layer(d, plot), layers, data, "setting up layer")
     data = _h(plot, "after", S.SETUP_LAYER, data)
 
-    # --- Setup layout ---
+    # --- Setup layout --- (R: plot-build.R:62 ``layout$setup``)
     layout = create_layout(plot.facet, plot.coordinates, getattr(plot, "layout", None))
+    data = _h(plot, "before", S.SETUP_LAYOUT, data, layout=layout)
     data = layout.setup(data, plot.data if isinstance(plot.data, pd.DataFrame) else pd.DataFrame(), plot.plot_env)
+    data = _h(plot, "after", S.SETUP_LAYOUT, data, layout=layout)
 
     # --- Compute aesthetics ---
     data = _h(plot, "before", S.COMPUTE_AESTHETICS, data)
@@ -793,21 +915,25 @@ def _build_ggplot(plot):
     # --- Setup plot labels ---
     _setup_plot_labels(plot, layers, data)
 
-    # --- Transform scales ---
+    # --- Transform scales --- (R: plot-build.R:70 ``lapply(data, scales$transform_df)``)
+    data = _h(plot, "before", S.TRANSFORM_SCALES, data, scales=scales)
     for i in range(len(data)):
         if data[i] is not None and not data[i].empty:
             data[i] = scales.transform_df(data[i])
+    data = _h(plot, "after", S.TRANSFORM_SCALES, data, scales=scales)
 
-    # --- Train and map positions ---
+    # --- Train and map positions --- (R: plot-build.R:77-78)
     scale_x = scales.get_scales("x")
     scale_y = scales.get_scales("y")
+    data = _h(plot, "before", S.TRAIN_POSITION, data, layout=layout, scales=scales)
     layout.train_position(data, scale_x, scale_y)
     data = layout.map_position(data)
+    data = _h(plot, "after", S.TRAIN_POSITION, data, layout=layout, scales=scales)
 
     # --- Compute statistics ---
-    data = _h(plot, "before", S.COMPUTE_STAT, data)
+    data = _h(plot, "before", S.COMPUTE_STAT, data, layout=layout)
     data = by_layer(lambda l, d: l.compute_statistic(d, layout), layers, data, "computing stat")
-    data = _h(plot, "after", S.COMPUTE_STAT, data)
+    data = _h(plot, "after", S.COMPUTE_STAT, data, layout=layout)
 
     # --- Map statistics ---
     data = _h(plot, "before", S.MAP_STAT, data)
@@ -834,20 +960,24 @@ def _build_ggplot(plot):
     data = _h(plot, "after", S.COMPUTE_GEOM_1, data)
 
     # --- Compute position ---
-    data = _h(plot, "before", S.COMPUTE_POSITION, data)
+    data = _h(plot, "before", S.COMPUTE_POSITION, data, layout=layout)
     data = by_layer(lambda l, d: l.compute_position(d, layout), layers, data, "computing position")
-    data = _h(plot, "after", S.COMPUTE_POSITION, data)
+    data = _h(plot, "after", S.COMPUTE_POSITION, data, layout=layout)
 
-    # --- Reset and retrain position scales ---
+    # --- Reset and retrain position scales --- (R: plot-build.R:99-101)
     scale_x = scales.get_scales("x")
     scale_y = scales.get_scales("y")
+    data = _h(plot, "before", S.RETRAIN_POSITION, data, layout=layout, scales=scales)
     layout.reset_scales()
     layout.train_position(data, scale_x, scale_y)
     layout.setup_panel_params()
     data = layout.map_position(data)
+    data = _h(plot, "after", S.RETRAIN_POSITION, data, layout=layout, scales=scales)
 
-    # --- Setup panel guides ---
+    # --- Setup panel guides --- (R: plot-build.R:104 ``layout$setup_panel_guides``)
+    data = _h(plot, "before", S.SETUP_GUIDES, data, layout=layout, guides=plot.guides)
     layout.setup_panel_guides(plot.guides, plot.layers)
+    data = _h(plot, "after", S.SETUP_GUIDES, data, layout=layout, guides=plot.guides)
 
     # --- Complete theme ---
     # R: plot@theme <- plot_theme(plot)  (plot-build.R:107)
@@ -856,14 +986,16 @@ def _build_ggplot(plot):
     # ``calc_element`` then returns ``None`` (no bg, no grid, no titles).
     plot.theme = complete_theme(plot.theme)
 
-    # --- Train non-position scales and guides ---
+    # --- Train non-position scales and guides --- (R: plot-build.R:113 ``lapply(data, npscales$train_df)``)
     npscales = scales.non_position_scales()
     if npscales.n() > 0:
         if hasattr(npscales, "set_palettes"):
             npscales.set_palettes(plot.theme)
+        data = _h(plot, "before", S.TRAIN_NONPOSITION, data, scales=npscales)
         for d in data:
             if d is not None:
                 npscales.train_df(d)
+        data = _h(plot, "after", S.TRAIN_NONPOSITION, data, scales=npscales)
         if plot.guides is not None and hasattr(plot.guides, "build"):
             plot.guides = plot.guides.build(npscales, plot.layers, plot.labels, data, plot.theme)
         for i in range(len(data)):
@@ -874,9 +1006,9 @@ def _build_ggplot(plot):
             plot.guides = plot.guides.get_custom()
 
     # --- Compute geom 2 ---
-    data = _h(plot, "before", S.COMPUTE_GEOM_2, data)
+    data = _h(plot, "before", S.COMPUTE_GEOM_2, data, theme=plot.theme)
     data = by_layer(lambda l, d: l.compute_geom_2(d, theme=plot.theme), layers, data, "setting up geom aesthetics")
-    data = _h(plot, "after", S.COMPUTE_GEOM_2, data)
+    data = _h(plot, "after", S.COMPUTE_GEOM_2, data, theme=plot.theme)
 
     # --- Finish statistics ---
     data = _h(plot, "before", S.FINISH_STAT, data)

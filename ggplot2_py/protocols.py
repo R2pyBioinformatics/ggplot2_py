@@ -1,33 +1,54 @@
 """
 Structural typing protocols for ggplot2_py GOG components.
 
-These :class:`~typing.Protocol` definitions specify the **contracts** that
-custom Geom, Stat, Scale, Coord, Facet, and Position classes should satisfy.
-They are ``@runtime_checkable``, so you can use ``isinstance()`` to verify
-compliance without requiring inheritance from the base classes.
+These :class:`~typing.Protocol` definitions are the **machine-readable
+contract** that every Geom, Stat, Scale, Coord, Facet, and Position class —
+shipped or user-supplied — must satisfy.
 
-This is a **Python-exclusive** feature — R's ggplot2 has no equivalent
-compile-time or runtime contract checking.
+What this module is **not**
+---------------------------
+* It is not a replacement for the base classes (``Geom``, ``Stat``, etc.).
+  Internal code dispatches off the base classes; the Protocols are an
+  orthogonal, structural view.
+* It does **not** make the base classes interchangeable with arbitrary
+  duck-typed objects in the build pipeline — the singledispatch + auto-
+  registration machinery still keys on the concrete base classes.
+
+What this module **is**
+-----------------------
+1. **Static-typing aid.**  Extension authors writing ``MyStat(Stat)`` get
+   mypy / pyright errors when they omit ``compute_group``, return the
+   wrong type, etc.  The signatures here mirror the base classes
+   verbatim — R's ``ggproto`` field signatures, transitively.
+2. **Live contract test.**  ``tests/test_protocols_contract.py`` iterates
+   every shipped subclass and asserts ``isinstance(instance, XxxProtocol)``.
+   Signature drift in a base class — or accidental method removal in a
+   subclass — fails CI immediately.  Without that test these Protocols
+   would just be documentation; with it they are an executable spec.
+
+R parity
+--------
+R has no Protocol mechanism (``ggproto`` is structural duck-typing all the
+way down), so the Protocols themselves are Python-exclusive.  However each
+method signature here is **derived from the corresponding R ``ggproto``
+field** by going through the Python base class (``Geom`` / ``Stat`` / …),
+which was ported from the R prototype.  So the contract is transitively
+R-aligned.
 
 Usage
 -----
-Mypy / pyright will flag violations statically::
+Static (mypy / pyright)::
 
     class MyStat(Stat):
         required_aes = ("x",)
-        # Missing compute_group → type error
+        # Forgetting compute_group is a static type error.
 
-At runtime you can check::
+Runtime (rare; the contract test in ``tests/`` already covers shipped
+classes — extension authors needing dynamic checks can do)::
 
     from ggplot2_py.protocols import StatProtocol
-    assert isinstance(my_stat, StatProtocol)
-
-Notes
------
-These protocols describe the *minimum* interface required for each
-component to participate in the GOG pipeline.  They do **not** replace
-the base classes (``Geom``, ``Stat``, etc.) — they complement them by
-enabling structural (duck-typed) checking.
+    if not isinstance(my_stat, StatProtocol):
+        raise TypeError("Stat extension is missing required methods")
 """
 
 from __future__ import annotations
@@ -36,6 +57,7 @@ from typing import (
     Any,
     Dict,
     List,
+    Optional,
     Protocol,
     Sequence,
     Tuple,
@@ -56,116 +78,125 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Geom
+# Geom — signatures from ``ggplot2_py.geom.Geom``
 # ---------------------------------------------------------------------------
 
 @runtime_checkable
 class GeomProtocol(Protocol):
-    """Contract for geometry objects.
-
-    A conforming Geom must declare its aesthetic requirements and provide
-    at least ``draw_panel`` or ``draw_group`` for rendering.
-    """
+    """Contract for geometry objects.  Mirrors ``Geom`` (geom.py:462)."""
 
     required_aes: Union[Tuple[str, ...], List[str]]
-    default_aes: Any  # Mapping or dict
-    draw_key: Any  # callable
+    default_aes: Any            # Mapping or dict
+    draw_key: Any               # callable (class-level attribute)
 
-    def setup_params(self, data: pd.DataFrame, params: dict) -> dict: ...
-    def setup_data(self, data: pd.DataFrame, params: dict) -> pd.DataFrame: ...
-    def draw_panel(self, data: pd.DataFrame, panel_params: dict,
-                   coord: Any, **kwargs: Any) -> Any: ...
+    def setup_params(self, data: pd.DataFrame, params: Dict[str, Any]) -> Dict[str, Any]: ...
+    def setup_data(self, data: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame: ...
+    def draw_panel(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 # ---------------------------------------------------------------------------
-# Stat
+# Stat — signatures from ``ggplot2_py.stat.Stat``
 # ---------------------------------------------------------------------------
 
 @runtime_checkable
 class StatProtocol(Protocol):
-    """Contract for statistical transformation objects.
+    """Contract for statistical transformation objects.  Mirrors ``Stat``
+    (stat.py base class).
 
-    A conforming Stat must declare its aesthetic requirements and provide
-    ``compute_group`` (or ``compute_panel`` / ``compute_layer``).
+    The Protocol pins the three methods most likely to be user-overridden;
+    a Stat may also override ``compute_layer`` or ``compute_panel`` instead
+    of (or in addition to) ``compute_group``.
     """
 
     required_aes: Union[Tuple[str, ...], List[str]]
     default_aes: Any
 
-    def setup_params(self, data: pd.DataFrame, params: dict) -> dict: ...
-    def setup_data(self, data: pd.DataFrame, params: dict) -> pd.DataFrame: ...
-    def compute_group(self, data: pd.DataFrame, scales: Any,
-                      **params: Any) -> pd.DataFrame: ...
+    def setup_params(self, data: pd.DataFrame, params: Dict[str, Any]) -> Dict[str, Any]: ...
+    def setup_data(self, data: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame: ...
+    def compute_group(self, data: pd.DataFrame, scales: Any, **params: Any) -> pd.DataFrame: ...
 
 
 # ---------------------------------------------------------------------------
-# Scale
+# Scale — signatures from ``ggplot2_py.scale.Scale``
+#
+# The base class accepts optional ``limits`` on ``map`` / ``get_breaks`` /
+# ``get_labels``.  The Protocol matches those signatures verbatim — narrower
+# signatures (omitting the optional kwargs) caused the original drift.
 # ---------------------------------------------------------------------------
 
 @runtime_checkable
 class ScaleProtocol(Protocol):
-    """Contract for scale objects.
+    """Contract for scale objects.  Mirrors ``Scale`` (scale.py:410)."""
 
-    A conforming Scale mediates between data space and aesthetic space
-    via train / transform / map.
-    """
-
-    aesthetics: Any  # list of str
+    aesthetics: Any             # list of str
 
     def train(self, x: Any) -> None: ...
     def transform(self, x: Any) -> Any: ...
-    def map(self, x: Any) -> Any: ...
-    def get_breaks(self) -> Any: ...
-    def get_labels(self, breaks: Any = None) -> Any: ...
+    def map(self, x: Any, limits: Optional[Any] = ...) -> Any: ...
+    def get_breaks(self, limits: Optional[Any] = ...) -> Any: ...
+    def get_labels(self, breaks: Optional[Any] = ...) -> Any: ...
     def clone(self) -> Any: ...
 
 
 # ---------------------------------------------------------------------------
-# Coord
+# Coord — signatures from ``ggplot2_py.coord.Coord``
 # ---------------------------------------------------------------------------
 
 @runtime_checkable
 class CoordProtocol(Protocol):
-    """Contract for coordinate system objects.
+    """Contract for coordinate system objects.  Mirrors ``Coord``
+    (coord.py:494).
 
-    A conforming Coord transforms data positions into viewport positions
-    and renders background / axes.
+    ``setup_params`` takes ``Any`` (not ``list``) because the call sites
+    pass per-layer data lists, single DataFrames, or panel-level dicts
+    depending on the Coord subclass.
     """
 
-    def setup_params(self, data: list) -> dict: ...
-    def transform(self, data: pd.DataFrame, panel_params: dict) -> pd.DataFrame: ...
-    def setup_panel_params(self, scale_x: Any, scale_y: Any,
-                           params: dict = ...) -> dict: ...
+    def setup_params(self, data: Any) -> Dict[str, Any]: ...
+    def transform(self, data: pd.DataFrame, panel_params: Dict[str, Any]) -> pd.DataFrame: ...
+    def setup_panel_params(
+        self,
+        scale_x: Any,
+        scale_y: Any,
+        params: Optional[Dict[str, Any]] = ...,
+    ) -> Dict[str, Any]: ...
 
 
 # ---------------------------------------------------------------------------
-# Facet
+# Facet — signatures from ``ggplot2_py.facet.Facet``
 # ---------------------------------------------------------------------------
 
 @runtime_checkable
 class FacetProtocol(Protocol):
-    """Contract for faceting specification objects.
+    """Contract for faceting specification objects.  Mirrors ``Facet``
+    (facet.py:490)."""
 
-    A conforming Facet computes panel layout and assigns data to panels.
-    """
-
-    def compute_layout(self, data: list, params: dict) -> pd.DataFrame: ...
-    def map_data(self, data: pd.DataFrame, layout: pd.DataFrame,
-                 params: dict) -> pd.DataFrame: ...
+    def compute_layout(
+        self,
+        data: List[pd.DataFrame],
+        params: Dict[str, Any],
+    ) -> pd.DataFrame: ...
+    def map_data(
+        self,
+        data: pd.DataFrame,
+        layout: pd.DataFrame,
+        params: Dict[str, Any],
+    ) -> pd.DataFrame: ...
 
 
 # ---------------------------------------------------------------------------
-# Position
+# Position — signatures from ``ggplot2_py.position.Position``
 # ---------------------------------------------------------------------------
 
 @runtime_checkable
 class PositionProtocol(Protocol):
-    """Contract for position adjustment objects.
+    """Contract for position adjustment objects.  Mirrors ``Position``
+    (position.py:200)."""
 
-    A conforming Position adjusts data coordinates (e.g. dodge, stack)
-    after stat computation but before coordinate transformation.
-    """
-
-    def setup_params(self, data: pd.DataFrame) -> dict: ...
-    def compute_layer(self, data: pd.DataFrame, params: dict,
-                      layout: Any) -> pd.DataFrame: ...
+    def setup_params(self, data: pd.DataFrame) -> Dict[str, Any]: ...
+    def compute_layer(
+        self,
+        data: pd.DataFrame,
+        params: Dict[str, Any],
+        layout: Any,
+    ) -> pd.DataFrame: ...

@@ -962,6 +962,11 @@ __all__ = [
     "derive", "flip_data", "flipped_names", "has_flipped_aes",
     # Plugin discovery
     "discover_extensions", "list_extensions",
+    # Python-exclusive extension surface (README quickstart uses
+    # ``from ggplot2_py import *``; these would otherwise be invisible)
+    "ggplot_defaults", "BuildStage",
+    "GeomProtocol", "StatProtocol", "ScaleProtocol",
+    "CoordProtocol", "FacetProtocol", "PositionProtocol",
 ]
 
 # ---------------------------------------------------------------------------

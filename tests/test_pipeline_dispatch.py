@@ -211,3 +211,145 @@ class TestBuildHooks:
         p = ggplot(df, aes(x="x", y="y"))
         result = p.add_build_hook("after", BuildStage.FINISH_DATA, lambda d: d)
         assert result is p
+
+
+# -----------------------------------------------------------------------
+# C2: Every BuildStage constant actually fires in ggplot_build
+# (R parity: each stage corresponds to a real operation in plot-build.R)
+# -----------------------------------------------------------------------
+
+class TestAllBuildStagesFire:
+    """Each of the 16 ``BuildStage`` constants corresponds to a real stage
+    in R's ``plot-build.R``.  Before the Block-A fix, 6 of them were
+    "zombie" constants with no ``_h(...)`` wrapper.  This test pins every
+    stage's before+after to fire on a minimal plot."""
+
+    # COMPUTE_GEOM_2 needs a stat to produce something; we choose a
+    # non-position aesthetic so TRAIN_NONPOSITION also fires.
+    def _build_plot(self):
+        from ggplot2_py import geom_point
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "c": ["a", "a", "b"]})
+        return ggplot(df, aes(x="x", y="y", colour="c")) + geom_point()
+
+    @pytest.mark.parametrize("stage", [
+        BuildStage.LAYER_DATA,
+        BuildStage.SETUP_LAYER,
+        BuildStage.SETUP_LAYOUT,
+        BuildStage.COMPUTE_AESTHETICS,
+        BuildStage.TRANSFORM_SCALES,
+        BuildStage.TRAIN_POSITION,
+        BuildStage.COMPUTE_STAT,
+        BuildStage.MAP_STAT,
+        BuildStage.COMPUTE_GEOM_1,
+        BuildStage.COMPUTE_POSITION,
+        BuildStage.RETRAIN_POSITION,
+        BuildStage.SETUP_GUIDES,
+        BuildStage.TRAIN_NONPOSITION,
+        BuildStage.COMPUTE_GEOM_2,
+        BuildStage.FINISH_STAT,
+        BuildStage.FINISH_DATA,
+    ])
+    def test_stage_fires_before_and_after(self, stage):
+        log = []
+        p = self._build_plot()
+        p.add_build_hook("before", stage, lambda data: log.append(("before", stage)))
+        p.add_build_hook("after",  stage, lambda data: log.append(("after",  stage)))
+        ggplot_build(p)
+        assert ("before", stage) in log, f"BuildStage.{stage} 'before' did not fire"
+        assert ("after",  stage) in log, f"BuildStage.{stage} 'after'  did not fire"
+
+
+# -----------------------------------------------------------------------
+# C3: Per-stage ctx kwargs are forwarded as documented
+# -----------------------------------------------------------------------
+
+class TestBuildHookCtxForwarding:
+    """The BuildStage docstring's per-stage ctx table is the contract.  This
+    asserts each ctx-bearing stage actually delivers the promised kwargs."""
+
+    def _plot(self):
+        from ggplot2_py import geom_point
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "c": ["a", "a", "b"]})
+        return ggplot(df, aes(x="x", y="y", colour="c")) + geom_point()
+
+    def _captured(self, stage, capture):
+        """Register a `**kw`-style hook, build, return captured kwargs dict."""
+        p = self._plot()
+        p.add_build_hook("after", stage, lambda data, **kw: capture.update(kw))
+        ggplot_build(p)
+        return capture
+
+    def test_setup_layout_carries_layout(self):
+        cap: dict = {}
+        self._captured(BuildStage.SETUP_LAYOUT, cap)
+        assert "layout" in cap and cap["layout"] is not None
+
+    def test_transform_scales_carries_scales(self):
+        cap: dict = {}
+        self._captured(BuildStage.TRANSFORM_SCALES, cap)
+        assert "scales" in cap and cap["scales"] is not None
+
+    def test_train_position_carries_layout_and_scales(self):
+        cap: dict = {}
+        self._captured(BuildStage.TRAIN_POSITION, cap)
+        assert {"layout", "scales"}.issubset(cap.keys())
+
+    def test_compute_stat_carries_layout(self):
+        cap: dict = {}
+        self._captured(BuildStage.COMPUTE_STAT, cap)
+        assert "layout" in cap
+
+    def test_compute_position_carries_layout(self):
+        cap: dict = {}
+        self._captured(BuildStage.COMPUTE_POSITION, cap)
+        assert "layout" in cap
+
+    def test_retrain_position_carries_layout_and_scales(self):
+        cap: dict = {}
+        self._captured(BuildStage.RETRAIN_POSITION, cap)
+        assert {"layout", "scales"}.issubset(cap.keys())
+
+    def test_setup_guides_carries_layout_and_guides(self):
+        cap: dict = {}
+        self._captured(BuildStage.SETUP_GUIDES, cap)
+        assert "layout" in cap and "guides" in cap
+
+    def test_train_nonposition_carries_scales(self):
+        cap: dict = {}
+        self._captured(BuildStage.TRAIN_NONPOSITION, cap)
+        assert "scales" in cap and cap["scales"] is not None
+
+    def test_compute_geom_2_carries_theme(self):
+        cap: dict = {}
+        self._captured(BuildStage.COMPUTE_GEOM_2, cap)
+        assert "theme" in cap
+
+
+# -----------------------------------------------------------------------
+# C4: Hook signature introspection — three styles must coexist
+# -----------------------------------------------------------------------
+
+class TestHookSignatureIntrospection:
+    """:func:`_run_hooks` uses ``inspect.signature`` to forward only the
+    kwargs each hook can accept.  Verify all three styles work for the
+    same stage without TypeErrors."""
+
+    def test_three_styles_coexist(self):
+        from ggplot2_py import geom_point
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "c": ["a", "a", "b"]})
+        p = ggplot(df, aes(x="x", y="y", colour="c")) + geom_point()
+
+        log = {}
+        # data-only (no kwargs)
+        p.add_build_hook("after", BuildStage.TRAIN_POSITION,
+                         lambda data: log.setdefault("data_only", True))
+        # **kw catch-all
+        p.add_build_hook("after", BuildStage.TRAIN_POSITION,
+                         lambda data, **kw: log.update({"kw": sorted(kw.keys())}))
+        # named kwarg selecting one ctx field
+        p.add_build_hook("after", BuildStage.TRAIN_POSITION,
+                         lambda data, layout=None: log.update({"named_layout": layout is not None}))
+        ggplot_build(p)
+        assert log["data_only"] is True
+        assert log["kw"] == ["layout", "scales"]
+        assert log["named_layout"] is True
