@@ -23,6 +23,7 @@ These capabilities have no R equivalent and leverage Python-specific language fe
 | **Auto-registration** | `__init_subclass__` | `class GeomStar(Geom): ...` auto-registers; no manual wiring needed |
 | **Protocol contracts** | `typing.Protocol` | `isinstance(my_geom, GeomProtocol)` — structural type checking for extensions |
 | **Scoped defaults** | `contextvars.ContextVar` | `with ggplot_defaults(theme=theme_minimal()): ...` — thread-safe scoped defaults |
+| **Functional composition** | `sum` / `reduce` over `__add__` | `sum(parts, start=ggplot(data))` — compose plots without the `+` operator, useful for programmatic plot construction |
 
 ## Installation
 
@@ -94,6 +95,46 @@ with ggplot_defaults(theme=theme_minimal()):
     p2 = ggplot(df, aes("x", "y")) + geom_bar()     # theme_minimal applied
 # Outside: no defaults
 ```
+
+### Functional composition with `sum()` / `reduce()` (Python-exclusive)
+
+The `+` operator is the canonical ggplot2 syntax.  Because `GGPlot.__add__` is defined and every component family is registered with
+the `update_ggplot` singledispatch generic, **Python's iterable-composition
+idioms also work directly** — useful for programmatic plot building, list
+comprehensions, or just function-style code:
+
+```python
+# 1) `sum(parts, start=ggplot(data))` — the canonical function-style form
+def fnplot(data, *parts):
+    return sum(parts, start=ggplot(data))
+
+fnplot(
+    mpg,
+    aes(x="displ", y="hwy", colour="class"),
+    geom_point(),
+    geom_smooth(method="lm"),
+    facet_wrap("drv"),
+    theme_minimal(),
+)
+
+# 2) `sum` over an iterable, no helper needed:
+sum(
+    [aes(x="displ", y="hwy"), geom_point(), theme_minimal()],
+    start=ggplot(mpg),
+)
+
+# 3) `functools.reduce` — the canonical Python composition operator:
+from functools import reduce
+from operator import add
+reduce(add, [aes(x="displ", y="hwy"), geom_point(), theme_minimal()], ggplot(mpg))
+
+# 4) List on the RHS of `+` — recursive add via the list-dispatch:
+ggplot(mpg, aes("displ", "hwy")) + [geom_point(), geom_smooth(), theme_minimal()]
+```
+
+> One caveat: Python's built-in `sum` has the signature
+> `sum(iterable, /, start=0)` — it accepts *one* iterable plus an optional
+> `start`, **not** variadic arguments.  `sum(a, b, c, d)` raises `TypeError`;
 
 ## Tutorials
 
