@@ -1,0 +1,32 @@
+id: ggplot2_py.waiver_sentinel
+name: "`waiver()` — the 'use the default' sentinel"
+category: defaults-and-sentinels
+description: |
+  ggplot2 distinguishes three states for many scale/label/limit arguments:
+
+  - `None` → "no value" (e.g., `breaks=None` ⟹ no break marks at all).
+  - `waiver()` → "use the default for this scale/aesthetic" (e.g.,
+    `breaks=waiver()` ⟹ let the transform decide its breaks).
+  - any concrete value → that value.
+
+  The `Waiver` class (from `ggplot2_py._compat`) is a sentinel object. It is
+  the **default** for many kwargs: `breaks`, `minor_breaks`, `labels`,
+  `limits`, `expand`, `sec_axis`, `guide`. Treating `None` as equivalent to
+  the default is the most common ggplot2-python bug — they are NOT the same.
+
+  Use `is_waiver(x)` to test, or `x is waiver()` (since `waiver()` is a
+  singleton).
+invariants:
+  - "`None` ≠ `waiver()`. `None` means 'explicitly no value'; `waiver()` means 'use the default'."
+  - "Passing `None` to `breaks=`, `labels=`, etc. will *disable* that feature, not fall back to the default."
+  - "Most scale/label functions accept `waiver()` as their default. Read the function signature; never assume the default is `None`."
+  - "Construct a `waiver()` via the public factory; do not import the `Waiver` class directly unless you're testing with `is_waiver(x)`."
+mental_model:
+  for_r_users: |
+    1:1 with R `ggplot2::waiver()`. Same intent, same name, same singleton behavior.
+  for_python_users: |
+    Closest standard-library analogue is `Ellipsis` / `...` used as a sentinel,
+    but `waiver()` is a typed sentinel with a dedicated factory. Treat it as
+    a third tristate value: not-set, set-to-None, set-to-default.
+related_concepts:
+  - ggplot2_py.aes_mapping

@@ -1,0 +1,41 @@
+id: ggplot2_py.geom_bar
+import_path: ggplot2_py.geom_bar
+execution_class: builder
+intent:
+  - "bar chart"
+  - "category counts or summed totals"
+description: |
+  Default stat='count' — bars heights are row counts per x level. For
+  pre-summarized data where y is the bar height, set stat='identity' or
+  use the shortcut geom_col().
+parameters:
+  - name: mapping
+    type: Mapping
+    required: false
+    default: null
+  - name: stat
+    type: str
+    required: false
+    default: count
+    description: "'count' (default) or 'identity' for pre-summarized y."
+  - name: position
+    type: str
+    required: false
+    default: stack
+    description: "'stack' (default), 'dodge', 'fill'."
+returns_kind: new_object
+returns_type: Layer
+next:
+  - ggplot2_py.facet_wrap
+  - ggplot2_py.labs
+failure_fixes:
+  - when: "bars don't appear / wrong heights for pre-summarized data"
+    suggest:
+      - "Set stat='identity' or use geom_col() instead of geom_bar()"
+  - when: "stacked bars instead of side-by-side"
+    suggest:
+      - "position='dodge'"
+examples:
+  - "ggplot(mpg, aes(x='class')) + geom_bar()"
+  - "ggplot(df_sum, aes(x='class', y='count')) + geom_col()"
+tested_on: "ggplot2-python@4.0.2.9000"

@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.mean_sdl.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.mean_sdl
+import_path: ggplot2_py.mean_sdl
+execution_class: stateless
+intent: []
+description: Compute mean plus/minus a multiple of the standard deviation.
+parameters:
+- name: x
+  type: np.ndarray
+  required: true
+  default: null
+- name: mult
+  type: float
+  required: false
+  default: 2.0
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: pd.DataFrame
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

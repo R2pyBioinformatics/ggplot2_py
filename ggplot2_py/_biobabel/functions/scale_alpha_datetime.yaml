@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.scale_alpha_datetime.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_alpha_datetime
+import_path: ggplot2_py.scale_alpha_datetime
+execution_class: builder
+intent: []
+description: Alpha datetime scale.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: range
+  type: Optional[Sequence[float]]
+  required: false
+  default: null
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: alpha
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleContinuous
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

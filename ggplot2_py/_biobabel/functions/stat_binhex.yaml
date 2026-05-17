@@ -1,0 +1,56 @@
+# Auto-generated stub for ggplot2_py.stat_binhex.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.stat_binhex
+import_path: ggplot2_py.stat_binhex
+execution_class: builder
+intent: []
+description: Hexagonal binning.
+parameters:
+- name: mapping
+  type: Optional[Mapping]
+  required: false
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: geom
+  type: str
+  required: false
+  default: hex
+- name: position
+  type: str
+  required: false
+  default: identity
+- name: bins
+  type: int
+  required: false
+  default: 30
+- name: binwidth
+  type: Any
+  required: false
+  default: null
+- name: na_rm
+  type: bool
+  required: false
+  default: false
+- name: show_legend
+  type: Optional[bool]
+  required: false
+  default: null
+- name: inherit_aes
+  type: bool
+  required: false
+  default: true
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

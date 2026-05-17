@@ -1,0 +1,64 @@
+# Auto-generated stub for ggplot2_py.scale_color_viridis_b.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_color_viridis_b
+import_path: ggplot2_py.scale_color_viridis_b
+execution_class: builder
+intent: []
+description: Viridis binned colour scale.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: alpha
+  type: float
+  required: false
+  default: 1
+- name: begin
+  type: float
+  required: false
+  default: 0
+- name: end
+  type: float
+  required: false
+  default: 1
+- name: direction
+  type: int
+  required: false
+  default: 1
+- name: option
+  type: str
+  required: false
+  default: D
+- name: values
+  type: Optional[Sequence[float]]
+  required: false
+  default: null
+- name: space
+  type: str
+  required: false
+  default: Lab
+- name: na_value
+  type: str
+  required: false
+  default: grey50
+- name: guide
+  type: str
+  required: false
+  default: coloursteps
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: colour
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleBinned
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

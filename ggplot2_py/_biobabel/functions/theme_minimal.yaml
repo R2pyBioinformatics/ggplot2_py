@@ -1,0 +1,26 @@
+id: ggplot2_py.theme_minimal
+import_path: ggplot2_py.theme_minimal
+execution_class: builder
+intent:
+  - "apply minimal theme"
+  - "publication-style figure with no chartjunk"
+description: |
+  Apply a stripped-down theme (white background, no panel border, light
+  grid lines). The most popular theme override; commonly chained with
+  theme() to tweak individual elements.
+parameters:
+  - name: base_size
+    type: float
+    required: false
+    default: 11.0
+  - name: base_family
+    type: str
+    required: false
+    default: ""
+returns_kind: new_object
+returns_type: Theme
+next: []
+failure_fixes: []
+examples:
+  - "p + theme_minimal()"
+tested_on: "ggplot2-python@4.0.2.9000"

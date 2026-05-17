@@ -1,0 +1,16 @@
+# Auto-generated stub for ggplot2_py.get_element_tree.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.get_element_tree
+import_path: ggplot2_py.get_element_tree
+execution_class: stateless
+intent: []
+description: Return the currently active element tree.
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Dict[str, Dict[str, Any]]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

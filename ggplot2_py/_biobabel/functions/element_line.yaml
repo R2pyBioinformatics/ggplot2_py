@@ -1,0 +1,52 @@
+# Auto-generated stub for ggplot2_py.element_line.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.element_line
+import_path: ggplot2_py.element_line
+execution_class: builder
+intent: []
+description: Create a line theme element.
+parameters:
+- name: colour
+  type: Optional[str]
+  required: false
+  default: null
+- name: linewidth
+  type: Optional[float]
+  required: false
+  default: null
+- name: linetype
+  type: Optional[Union[int, str]]
+  required: false
+  default: null
+- name: lineend
+  type: Optional[str]
+  required: false
+  default: null
+- name: linejoin
+  type: Optional[str]
+  required: false
+  default: null
+- name: arrow
+  type: Optional[Any]
+  required: false
+  default: null
+- name: arrow_fill
+  type: Optional[str]
+  required: false
+  default: null
+- name: color
+  type: Optional[str]
+  required: false
+  default: null
+- name: inherit_blank
+  type: bool
+  required: false
+  default: false
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ElementLine
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.ggplot_defaults.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.ggplot_defaults
+import_path: ggplot2_py.ggplot_defaults
+execution_class: stateless
+intent: []
+description: Context manager for scoped plot defaults.
+parameters:
+- name: theme
+  type: Any
+  required: false
+  default: null
+- name: coord
+  type: Any
+  required: false
+  default: null
+- name: facet
+  type: Any
+  required: false
+  default: null
+- name: mapping
+  type: Any
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ''
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

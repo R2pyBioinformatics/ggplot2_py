@@ -1,0 +1,60 @@
+# Auto-generated stub for ggplot2_py.coord_radial.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.coord_radial
+import_path: ggplot2_py.coord_radial
+execution_class: builder
+intent: []
+description: Create a radial coordinate system.
+parameters:
+- name: theta
+  type: str
+  required: false
+  default: x
+- name: start
+  type: float
+  required: false
+  default: 0.0
+- name: end
+  type: Optional[float]
+  required: false
+  default: null
+- name: thetalim
+  type: Optional[Sequence[float]]
+  required: false
+  default: null
+- name: rlim
+  type: Optional[Sequence[float]]
+  required: false
+  default: null
+- name: expand
+  type: Union[bool, List[bool]]
+  required: false
+  default: true
+- name: clip
+  type: str
+  required: false
+  default: 'off'
+- name: r_axis_inside
+  type: Any
+  required: false
+  default: null
+- name: rotate_angle
+  type: bool
+  required: false
+  default: false
+- name: inner_radius
+  type: float
+  required: false
+  default: 0.0
+- name: reverse
+  type: str
+  required: false
+  default: none
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: CoordRadial
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

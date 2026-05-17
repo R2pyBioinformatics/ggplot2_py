@@ -1,0 +1,16 @@
+# Auto-generated stub for ggplot2_py.element_blank.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.element_blank
+import_path: ggplot2_py.element_blank
+execution_class: builder
+intent: []
+description: Create a blank element that draws nothing.
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ElementBlank
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.ggproto_parent.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.ggproto_parent
+import_path: ggplot2_py.ggproto_parent
+execution_class: stateless
+intent: []
+description: Get a proxy for calling parent-class methods.
+parameters:
+- name: parent
+  type: Type[GGProto]
+  required: true
+  default: null
+- name: self
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: _GGProtoParentProxy
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

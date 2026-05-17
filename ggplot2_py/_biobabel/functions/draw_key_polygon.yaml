@@ -1,0 +1,49 @@
+id: ggplot2_py.draw_key_polygon
+import_path: ggplot2_py.draw_key_polygon
+execution_class: plot
+intent:
+  - "draw the legend key for polygon/bar geoms (outlined filled rectangle)"
+description: |
+  Render an outlined filled rectangle as the legend key glyph — same
+  shape as `draw_key_rect` but with a visible outline drawn in `colour`
+  at `linewidth`. Used by `geom_polygon`, `geom_violin`, `geom_boxplot`
+  (fill), and notably **ggalluvial-python's `GeomStratum`** which sets
+  `draw_key = draw_key_polygon` for its stratum legend rendering.
+
+  Reads `colour` (outline), `fill` (interior), `alpha`, `linetype`,
+  `linewidth`, plus `linejoin` / `lineend` from `params` (default
+  'mitre' / 'butt').
+
+  See `ggplot2_py.draw_key_point` for the full `draw_key_*(data, params,
+  size) -> Grob` protocol documentation.
+parameters:
+  - name: data
+    type: "dict[str, Any]"
+    required: true
+    default: null
+    description: "Single-row aesthetic dict: colour, fill, alpha, linetype, linewidth."
+  - name: params
+    type: "dict[str, Any]"
+    required: true
+    default: null
+    description: "Reads `linejoin` ('mitre' default), `lineend` ('butt' default)."
+  - name: size
+    type: Any
+    required: false
+    default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Grob
+next:
+  - ggplot2_py.guide_legend
+failure_fixes:
+  - when: "outline missing in legend even though linewidth set"
+    suggest:
+      - "Check that `colour` is in default_aes for your geom. If colour is None, the rect renders without outline."
+  - when: "want fill but no outline"
+    suggest:
+      - "Use draw_key_rect (renders fill, drops col)."
+examples:
+  - "# ggalluvial-python pattern:\nclass GeomStratum(GeomRect):\n    draw_key = draw_key_polygon"
+tested_on: "ggplot2-python@4.0.2.9000"

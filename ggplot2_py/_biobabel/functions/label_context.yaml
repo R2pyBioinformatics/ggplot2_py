@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.label_context.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.label_context
+import_path: ggplot2_py.label_context
+execution_class: stateless
+intent: []
+description: Context-dependent labeller.
+parameters:
+- name: labels
+  type: Dict[str, List[str]]
+  required: true
+  default: null
+- name: multi_line
+  type: bool
+  required: false
+  default: true
+- name: sep
+  type: str
+  required: false
+  default: ': '
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: List[str]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

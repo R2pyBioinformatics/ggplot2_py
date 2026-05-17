@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.register_theme_elements.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.register_theme_elements
+import_path: ggplot2_py.register_theme_elements
+execution_class: stateless
+intent: []
+description: Register new theme elements globally.
+parameters:
+- name: element_tree
+  type: Optional[Dict[str, Dict[str, Any]]]
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: None
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

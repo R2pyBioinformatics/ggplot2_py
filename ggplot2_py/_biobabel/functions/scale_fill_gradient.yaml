@@ -1,0 +1,48 @@
+# Auto-generated stub for ggplot2_py.scale_fill_gradient.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_fill_gradient
+import_path: ggplot2_py.scale_fill_gradient
+execution_class: builder
+intent: []
+description: Two-colour gradient fill scale.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: low
+  type: str
+  required: false
+  default: '#132B43'
+- name: high
+  type: str
+  required: false
+  default: '#56B1F7'
+- name: space
+  type: str
+  required: false
+  default: Lab
+- name: na_value
+  type: str
+  required: false
+  default: grey50
+- name: guide
+  type: str
+  required: false
+  default: colourbar
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: fill
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleContinuous
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

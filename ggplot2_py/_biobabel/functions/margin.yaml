@@ -1,0 +1,36 @@
+# Auto-generated stub for ggplot2_py.margin.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.margin
+import_path: ggplot2_py.margin
+execution_class: builder
+intent: []
+description: Create a ``Margin`` object.
+parameters:
+- name: t
+  type: float
+  required: false
+  default: 0.0
+- name: r
+  type: float
+  required: false
+  default: 0.0
+- name: b
+  type: float
+  required: false
+  default: 0.0
+- name: l
+  type: float
+  required: false
+  default: 0.0
+- name: unit
+  type: str
+  required: false
+  default: pt
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Margin
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

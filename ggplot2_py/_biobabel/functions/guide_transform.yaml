@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.guide_transform.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.guide_transform
+import_path: ggplot2_py.guide_transform
+execution_class: builder
+intent: []
+description: Legacy S3-style ``guide_transform`` dispatch.
+parameters:
+- name: guide
+  type: Any
+  required: true
+  default: null
+- name: coord
+  type: Any
+  required: true
+  default: null
+- name: panel_params
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

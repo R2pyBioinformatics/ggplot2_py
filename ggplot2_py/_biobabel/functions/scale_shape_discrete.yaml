@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.scale_shape_discrete.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_shape_discrete
+import_path: ggplot2_py.scale_shape_discrete
+execution_class: builder
+intent: []
+description: Discrete shape scale.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: solid
+  type: Optional[bool]
+  required: false
+  default: null
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: shape
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleDiscrete
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

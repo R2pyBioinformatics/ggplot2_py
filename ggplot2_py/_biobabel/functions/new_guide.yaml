@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.new_guide.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.new_guide
+import_path: ggplot2_py.new_guide
+execution_class: stateless
+intent: []
+description: Construct a Guide instance with validated parameters.
+parameters:
+- name: available_aes
+  type: Union[str, List[str]]
+  required: false
+  default: any
+- name: super
+  type: type
+  required: false
+  default: '<ggproto class: Guide>'
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Guide
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.label_value.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.label_value
+import_path: ggplot2_py.label_value
+execution_class: stateless
+intent: []
+description: Return only the factor values.
+parameters:
+- name: labels
+  type: Dict[str, List[str]]
+  required: true
+  default: null
+- name: multi_line
+  type: bool
+  required: false
+  default: true
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: List[str]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

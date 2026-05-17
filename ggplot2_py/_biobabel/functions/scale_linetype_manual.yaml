@@ -1,0 +1,36 @@
+# Auto-generated stub for ggplot2_py.scale_linetype_manual.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_linetype_manual
+import_path: ggplot2_py.scale_linetype_manual
+execution_class: builder
+intent: []
+description: Linetype manual scale.
+parameters:
+- name: values
+  type: Any
+  required: true
+  default: null
+- name: breaks
+  type: Any
+  required: false
+  default: null
+- name: na_value
+  type: Any
+  required: false
+  default: .nan
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: linetype
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleDiscrete
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

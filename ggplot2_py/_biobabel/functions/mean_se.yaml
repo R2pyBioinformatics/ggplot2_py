@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.mean_se.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.mean_se
+import_path: ggplot2_py.mean_se
+execution_class: stateless
+intent: []
+description: Compute mean and standard error.
+parameters:
+- name: x
+  type: np.ndarray
+  required: true
+  default: null
+- name: mult
+  type: float
+  required: false
+  default: 1.0
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: pd.DataFrame
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

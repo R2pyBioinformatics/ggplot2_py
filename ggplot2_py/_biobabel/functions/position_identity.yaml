@@ -1,0 +1,16 @@
+# Auto-generated stub for ggplot2_py.position_identity.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.position_identity
+import_path: ggplot2_py.position_identity
+execution_class: builder
+intent: []
+description: Create an identity position (no adjustment).
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: PositionIdentity
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

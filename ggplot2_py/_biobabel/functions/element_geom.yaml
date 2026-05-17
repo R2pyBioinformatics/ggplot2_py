@@ -1,0 +1,72 @@
+# Auto-generated stub for ggplot2_py.element_geom.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.element_geom
+import_path: ggplot2_py.element_geom
+execution_class: builder
+intent: []
+description: Create a geom defaults theme element.
+parameters:
+- name: ink
+  type: Optional[str]
+  required: false
+  default: null
+- name: paper
+  type: Optional[str]
+  required: false
+  default: null
+- name: accent
+  type: Optional[str]
+  required: false
+  default: null
+- name: linewidth
+  type: Optional[float]
+  required: false
+  default: null
+- name: borderwidth
+  type: Optional[float]
+  required: false
+  default: null
+- name: linetype
+  type: Optional[Union[int, str]]
+  required: false
+  default: null
+- name: bordertype
+  type: Optional[Union[int, str]]
+  required: false
+  default: null
+- name: family
+  type: Optional[str]
+  required: false
+  default: null
+- name: fontsize
+  type: Optional[float]
+  required: false
+  default: null
+- name: pointsize
+  type: Optional[float]
+  required: false
+  default: null
+- name: pointshape
+  type: Optional[int]
+  required: false
+  default: null
+- name: colour
+  type: Optional[str]
+  required: false
+  default: null
+- name: color
+  type: Optional[str]
+  required: false
+  default: null
+- name: fill
+  type: Optional[str]
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ElementGeom
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

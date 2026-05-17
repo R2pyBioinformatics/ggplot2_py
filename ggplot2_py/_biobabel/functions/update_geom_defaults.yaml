@@ -1,0 +1,68 @@
+id: ggplot2_py.update_geom_defaults
+import_path: ggplot2_py.update_geom_defaults
+execution_class: stateless
+intent:
+  - "globally override the default aesthetics for a Geom class"
+  - "e.g. make every geom_point default to red without writing color='red' each time"
+description: |
+  Mutate the `default_aes` slot of a `Geom` class for the rest of the
+  interpreter session. Pass `None` as `new` to roll back to the original
+  defaults (cached in `_cache_geom`). Mirrors R
+  `update_geom_defaults` (geom-update-defaults.R:57-59).
+
+  **WARNING — process-global mutation.** This changes the CLASS slot, so
+  every subsequent `geom_X()` call (and every existing reference to the
+  class) sees the new defaults. Effects:
+    - Affects ALL plots constructed after the call, in this interpreter.
+    - Not thread-safe.
+    - Cannot scope per-plot. For per-plot defaults, set the aesthetic on
+      the geom directly: `geom_point(color='red')`.
+
+  This is NOT a biobabel `writes:` slot mutation (that field is for
+  adata side effects); the side effect is on a Python class attribute.
+
+  Use `reset_geom_defaults()` to undo every prior `update_geom_defaults`
+  call in one shot. Pass `None` for `new` to roll back ONE geom.
+
+  Accepts either a Geom *class* or a *string* registry name. Aesthetic
+  aliases (`colour`/`color`) are standardised before write.
+
+  Extension package authors who ship their own theme often call this
+  during `theme.activate()` to bias the default look — but the rollback
+  must happen on `theme.deactivate()` or the change leaks.
+parameters:
+  - name: geom
+    type: "str | type[Geom]"
+    required: true
+    default: null
+    description: "Geom class or registry name (e.g. 'point', GeomPoint)."
+  - name: new
+    type: "dict | Mapping | None"
+    required: true
+    default: null
+    description: "New defaults, e.g. {'colour': 'red', 'size': 3}. None = roll back to original."
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: dict
+next:
+  - ggplot2_py.update_stat_defaults
+  - ggplot2_py.reset_geom_defaults
+failure_fixes:
+  - when: "change appears to leak into the next test / next notebook cell"
+    suggest:
+      - "Always pair with reset_geom_defaults() (resets ALL) or update_geom_defaults(geom, None) (reset ONE). Module-level state persists for the interpreter lifetime."
+  - when: "want to scope the change to one plot only"
+    suggest:
+      - "Don't use update_geom_defaults. Pass the aesthetic as a constant in the layer: geom_point(color='red', size=3). Or use a context manager via ggplot_defaults if available."
+  - when: "string lookup fails"
+    suggest:
+      - "Check spelling against Geom._registry. Registry names are lowercase ('point', 'line'); also accepts CamelCase ('GeomPoint')."
+  - when: "passing a Mapping built by aes() seems to do nothing for color/colour"
+    suggest:
+      - "Aesthetic name aliases are standardised internally — colour, color, col are all unified. If your dict still has stale keys, run rename_aes first."
+examples:
+  - "update_geom_defaults('point', {'colour': 'red', 'size': 3})"
+  - "update_geom_defaults(GeomBar, {'fill': 'steelblue'})"
+  - "update_geom_defaults('point', None)  # roll back only this one"
+tested_on: "ggplot2-python@4.0.2.9000"

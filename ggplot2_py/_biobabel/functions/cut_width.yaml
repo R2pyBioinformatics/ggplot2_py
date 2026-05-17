@@ -1,0 +1,40 @@
+# Auto-generated stub for ggplot2_py.cut_width.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.cut_width
+import_path: ggplot2_py.cut_width
+execution_class: stateless
+intent: []
+description: Discretise *x* into bins of fixed *width*.
+parameters:
+- name: x
+  type: Any
+  required: true
+  default: null
+- name: width
+  type: float
+  required: true
+  default: null
+- name: center
+  type: Optional[float]
+  required: false
+  default: null
+- name: boundary
+  type: Optional[float]
+  required: false
+  default: null
+- name: closed
+  type: str
+  required: false
+  default: right
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

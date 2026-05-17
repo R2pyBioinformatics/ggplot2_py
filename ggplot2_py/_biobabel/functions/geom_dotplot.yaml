@@ -1,0 +1,96 @@
+# Auto-generated stub for ggplot2_py.geom_dotplot.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.geom_dotplot
+import_path: ggplot2_py.geom_dotplot
+execution_class: builder
+intent: []
+description: Create a dotplot layer (R geom-dotplot.R:122-139 signature).
+parameters:
+- name: mapping
+  type: Optional[Mapping]
+  required: false
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: position
+  type: str
+  required: false
+  default: identity
+- name: binwidth
+  type: Optional[float]
+  required: false
+  default: null
+- name: binaxis
+  type: str
+  required: false
+  default: x
+- name: method
+  type: str
+  required: false
+  default: dotdensity
+- name: binpositions
+  type: str
+  required: false
+  default: bygroup
+- name: stackdir
+  type: str
+  required: false
+  default: up
+- name: stackratio
+  type: float
+  required: false
+  default: 1
+- name: dotsize
+  type: float
+  required: false
+  default: 1
+- name: stackgroups
+  type: bool
+  required: false
+  default: false
+- name: origin
+  type: Optional[float]
+  required: false
+  default: null
+- name: right
+  type: bool
+  required: false
+  default: true
+- name: width
+  type: float
+  required: false
+  default: 0.9
+- name: drop
+  type: bool
+  required: false
+  default: false
+- name: na_rm
+  type: bool
+  required: false
+  default: false
+- name: show_legend
+  type: Any
+  required: false
+  default: null
+- name: inherit_aes
+  type: bool
+  required: false
+  default: true
+- name: stat
+  type: str
+  required: false
+  default: bindot
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

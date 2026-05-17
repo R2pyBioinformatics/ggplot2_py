@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.is_guides.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.is_guides
+import_path: ggplot2_py.is_guides
+execution_class: stateless
+intent: []
+description: Test whether *x* is a Guides container.
+parameters:
+- name: x
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: bool
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

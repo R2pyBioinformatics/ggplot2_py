@@ -1,0 +1,36 @@
+# Auto-generated stub for ggplot2_py.coord_munch.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.coord_munch
+import_path: ggplot2_py.coord_munch
+execution_class: builder
+intent: []
+description: Interpolate path data for non-linear coordinate systems.
+parameters:
+- name: coord
+  type: Coord
+  required: true
+  default: null
+- name: data
+  type: pd.DataFrame
+  required: true
+  default: null
+- name: range_
+  type: Dict[str, Any]
+  required: true
+  default: null
+- name: n
+  type: int
+  required: false
+  default: 50
+- name: is_closed
+  type: bool
+  required: false
+  default: false
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: pd.DataFrame
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

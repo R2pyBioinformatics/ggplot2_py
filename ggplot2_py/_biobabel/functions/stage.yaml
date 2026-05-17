@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.stage.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.stage
+import_path: ggplot2_py.stage
+execution_class: stateless
+intent: []
+description: Create a :class:`Stage` aesthetic with per-stage overrides.
+parameters:
+- name: start
+  type: Optional[Union[str, Callable[..., Any]]]
+  required: false
+  default: null
+- name: after_stat
+  type: Optional[Union[str, Callable[..., Any], AfterStat]]
+  required: false
+  default: null
+- name: after_scale
+  type: Optional[Union[str, Callable[..., Any], AfterScale]]
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Stage
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

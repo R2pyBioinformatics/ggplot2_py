@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.get_geom_defaults.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.get_geom_defaults
+import_path: ggplot2_py.get_geom_defaults
+execution_class: stateless
+intent: []
+description: Return the resolved default aesthetics for *geom*.
+parameters:
+- name: geom
+  type: Any
+  required: true
+  default: null
+- name: theme
+  type: Optional[Any]
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Dict[str, Any]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

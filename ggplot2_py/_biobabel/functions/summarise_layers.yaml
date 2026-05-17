@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.summarise_layers.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.summarise_layers
+import_path: ggplot2_py.summarise_layers
+execution_class: stateless
+intent: []
+description: Summarise each layer.
+parameters:
+- name: plot
+  type: GGPlot
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: List[Dict[str, Any]]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

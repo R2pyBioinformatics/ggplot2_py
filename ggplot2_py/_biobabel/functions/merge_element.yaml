@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.merge_element.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.merge_element
+import_path: ggplot2_py.merge_element
+execution_class: stateless
+intent: []
+description: Merge a child element (*new*) with a parent element (*old*).
+parameters:
+- name: new
+  type: Any
+  required: true
+  default: null
+- name: old
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

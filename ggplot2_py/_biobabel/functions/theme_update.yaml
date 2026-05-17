@@ -1,0 +1,71 @@
+id: ggplot2_py.theme_update
+import_path: ggplot2_py.theme_update
+execution_class: builder
+intent:
+  - "tweak individual elements of the GLOBAL default Theme"
+  - "apply a partial theme(...) override without replacing the active complete theme"
+  - "merge new element settings into whatever theme is currently active"
+description: |
+  Build a partial `theme(**kwargs)` and merge it (element-by-element)
+  into the currently-active global default. Equivalent to:
+
+      theme_set(theme_get() + theme(**kwargs))
+
+  The return value is the *previously*-active Theme (the theme as it
+  was BEFORE this update), captured so the caller can restore it.
+
+  **WARNING — global mutable state**:
+
+  `theme_update` mutates `ggplot2_py`'s module-level default. The same
+  caveats as `theme_set` apply:
+
+  - In notebooks, the effect persists across cells.
+  - In tests, the effect LEAKS across tests unless explicitly restored.
+  - In multi-import contexts, last-import wins.
+
+  **The safer pattern** is to add `+ theme(**kwargs)` per-plot. That
+  override is local to one plot and never touches global state.
+
+  Use `theme_update` only when:
+  1. You have already called `theme_set(...)` to install a complete
+     theme, AND
+  2. You want to layer one or two element tweaks on top of it for
+     every subsequent plot.
+
+  Contrast with `theme_replace`: `theme_update` MERGES element fields
+  (so element_text(angle=45) keeps the inherited size/colour), while
+  `theme_replace` swaps elements wholesale.
+parameters:
+  - name: "**kwargs"
+    type: "element"
+    required: false
+    default: null
+    description: |
+      Theme element overrides — same syntax as `theme(...)`. Use
+      underscore names (axis_text_x, not axis.text.x) and wrap values
+      in element_text / element_line / element_rect / element_blank.
+returns_kind: new_object
+returns_type: Optional[Theme]
+next:
+  - ggplot2_py.theme_get
+  - ggplot2_py.theme_set
+failure_fixes:
+  - when: "Plots in other tests / notebook cells unexpectedly use the updated elements"
+    suggest:
+      - "theme_update() mutates module-level state. Prefer `p + theme(**kwargs)` per-plot — local to one plot."
+      - "If you must use theme_update, save+restore: prev = theme_update(...); try: ...; finally: theme_set(prev)"
+      - "See anti-pattern: ggplot2_py.theme_set_global_pollution"
+  - when: "User passed R dot-syntax kwarg (e.g. axis.text.x=...)"
+    suggest:
+      - "Use underscores: axis_text_x=element_text(angle=45)."
+  - when: "Wanted to replace an element wholesale, not merge"
+    suggest:
+      - "Use theme_replace(**kwargs) — theme_update merges element fields."
+  - when: "Called theme_update before any theme_set / no active theme"
+    suggest:
+      - "theme_update falls back to setting just the partial theme. Usually you want theme_set(theme_minimal()) (or similar) first, then theme_update for tweaks."
+examples:
+  - "theme_update(legend_position='bottom')"
+  - "prev = theme_update(axis_text_x=element_text(angle=45, hjust=1))"
+  - "theme_set(theme_minimal()); theme_update(panel_grid_minor=element_blank())"
+tested_on: "ggplot2-python@4.0.2.9000"

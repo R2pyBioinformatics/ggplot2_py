@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.fortify_dispatch.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.fortify_dispatch
+import_path: ggplot2_py.fortify_dispatch
+execution_class: stateless
+intent: []
+description: Singledispatch generic mirroring R's S3 generic for ``fortify``.
+parameters:
+- name: model
+  type: Any
+  required: true
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ''
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,92 @@
+# Auto-generated stub for ggplot2_py.quickplot.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.quickplot
+import_path: ggplot2_py.quickplot
+execution_class: builder
+intent: []
+description: Create a quick plot (deprecated).
+parameters:
+- name: x
+  type: Any
+  required: false
+  default: null
+- name: y
+  type: Any
+  required: false
+  default: null
+- name: data
+  type: Optional[pd.DataFrame]
+  required: false
+  default: null
+- name: geom
+  type: Union[str, List[str]]
+  required: false
+  default: auto
+- name: facets
+  type: Any
+  required: false
+  default: null
+- name: xlim
+  type: Optional[Sequence]
+  required: false
+  default: null
+- name: ylim
+  type: Optional[Sequence]
+  required: false
+  default: null
+- name: log
+  type: str
+  required: false
+  default: ''
+- name: main
+  type: Optional[str]
+  required: false
+  default: null
+- name: xlab
+  type: Optional[str]
+  required: false
+  default: null
+- name: ylab
+  type: Optional[str]
+  required: false
+  default: null
+- name: asp
+  type: Optional[float]
+  required: false
+  default: null
+- name: colour
+  type: Any
+  required: false
+  default: null
+- name: color
+  type: Any
+  required: false
+  default: null
+- name: fill
+  type: Any
+  required: false
+  default: null
+- name: size
+  type: Any
+  required: false
+  default: null
+- name: shape
+  type: Any
+  required: false
+  default: null
+- name: alpha
+  type: Any
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

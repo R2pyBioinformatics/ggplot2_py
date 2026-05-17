@@ -1,0 +1,40 @@
+# Auto-generated stub for ggplot2_py.position_jitterdodge.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.position_jitterdodge
+import_path: ggplot2_py.position_jitterdodge
+execution_class: builder
+intent: []
+description: Create a jitter+dodge position adjustment.
+parameters:
+- name: jitter_width
+  type: Optional[float]
+  required: false
+  default: null
+- name: jitter_height
+  type: float
+  required: false
+  default: 0.0
+- name: dodge_width
+  type: float
+  required: false
+  default: 0.75
+- name: reverse
+  type: bool
+  required: false
+  default: false
+- name: preserve
+  type: str
+  required: false
+  default: total
+- name: seed
+  type: Any
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: PositionJitterdodge
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

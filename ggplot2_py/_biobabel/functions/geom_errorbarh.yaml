@@ -1,0 +1,38 @@
+id: ggplot2_py.geom_errorbarh
+import_path: ggplot2_py.geom_errorbarh
+execution_class: builder
+intent:
+  - "horizontal error bars"
+  - "x-axis CI/SE bars"
+description: |
+  Horizontal mirror of geom_errorbar; see geom_errorbar for full failure modes.
+  DEPRECATED in this version — emits a `FutureWarning` and forwards to
+  `geom_errorbar(orientation='y')`. Needs `xmin`/`xmax` (not `ymin`/`ymax`).
+parameters:
+  - name: mapping
+    type: Mapping
+    required: false
+    default: null
+    description: "Needs y, xmin, xmax."
+  - name: data
+    type: DataFrame
+    required: false
+    default: null
+  - name: orientation
+    type: str
+    required: false
+    default: y
+requires: {}
+writes: {}
+returns_kind: new_object
+returns_type: Layer
+next:
+  - ggplot2_py.geom_point
+  - ggplot2_py.facet_wrap
+failure_fixes:
+  - when: "FutureWarning: geom_errorbarh() is deprecated"
+    suggest:
+      - "Switch to geom_errorbar(orientation='y') — it is the new spelling and avoids the warning."
+examples:
+  - "geom_errorbar(aes(y='gene', xmin='lo', xmax='hi'), orientation='y')"
+tested_on: "ggplot2-python@4.0.2.9000"

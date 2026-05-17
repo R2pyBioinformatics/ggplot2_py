@@ -1,0 +1,72 @@
+id: ggplot2_py.ggplot_build
+import_path: ggplot2_py.ggplot_build
+execution_class: plot
+intent:
+  - "run the data pipeline (stats, scales, positions) without rendering"
+  - "inspect or modify a plot before it is converted to grobs"
+description: |
+  Expand a `GGPlot` into a `BuiltGGPlot` — the drawing-ready intermediate
+  with every layer's data computed by its stat, mapped through scales,
+  and positioned. Rendering (the grob pass) is the next step
+  (`ggplot_gtable` / `ggplotGrob`). Splitting build from render lets
+  extension authors inspect or rewrite the plot mid-pipeline.
+
+  Implemented as a `functools.singledispatch` generic (R parity:
+  `ggplot_build` is `UseMethod()`). Built-in registrations:
+    - `@ggplot_build.register(GGPlot)` — full pipeline (plot.py:867+).
+    - `@ggplot_build.register(BuiltGGPlot)` — no-op (idempotent).
+
+  **Extension authors** register custom plot types::
+
+      from ggplot2_py import ggplot_build
+
+      @ggplot_build.register(MyPlotClass)
+      def _build_my_plot(plot):
+          # transform/inspect plot, then delegate to the GGPlot builder
+          plot.layers = my_rewrite(plot.layers)
+          return ggplot_build.dispatch(GGPlot)(plot)
+
+  Pipeline stages (see plot.py:888-920+):
+    1. LAYER_DATA          — pull each layer's data (or inherit plot.data)
+    2. SETUP_LAYER         — let each layer prep itself
+    3. SETUP_LAYOUT        — facet + coord build the panel grid
+    4. COMPUTE_AESTHETICS  — apply the layer's mapping to its data
+    5. (later) TRAIN_SCALES → COMPUTE_STATS → MAP_STATS → COMPUTE_GEOM → FINISH
+
+  Each stage has `before`/`after` hooks; the `BuildStage` enum exposes
+  stage names so a custom plot class can hook in via `plot_hooks`.
+
+  Less commonly called by extensions than `ggplotGrob`, but ggrepel-python
+  uses it in tests to verify its repulsion logic ran on the post-stat
+  data (`from ggplot2_py import ggplot_build, ...`).
+parameters:
+  - name: plot
+    type: "GGPlot | BuiltGGPlot"
+    required: true
+    default: null
+    description: "Plot to build. Already-built plots are returned unchanged."
+requires: {}
+writes: {}
+returns_kind: new_object
+returns_type: BuiltGGPlot
+next:
+  - ggplot2_py.ggplotGrob
+  - ggplot2_py.ggplot_gtable
+failure_fixes:
+  - when: "TypeError: Cannot build object of type X. Expected a GGPlot or BuiltGGPlot instance."
+    suggest:
+      - "Register your plot type: @ggplot_build.register(X). The default dispatch raises this for unknown types."
+  - when: "want to override one stage without rewriting the whole pipeline"
+    suggest:
+      - "Use plot_hooks via the GGPlot's `plot_hooks` attribute, or register a stage-specific hook. See plot.py:_run_hooks and BuildStage."
+  - when: "ImportError or partial import when registering"
+    suggest:
+      - "Register at module import time (after ggplot2_py is fully loaded). `ggplot_build` is exported from `ggplot2_py` and `ggplot2_py.plot`."
+  - when: "built object is missing scales/coord training"
+    suggest:
+      - "If you returned early from a custom registration, downstream stages didn't run. Delegate to ggplot_build.dispatch(GGPlot)(plot) for the standard pipeline after your custom prep."
+examples:
+  - "built = ggplot_build(p)\n# inspect: built.data is a list[DataFrame], one per layer"
+  - "from ggplot2_py import ggplot_build\n@ggplot_build.register(MyAnnotatedPlot)\ndef _(plot): return ggplot_build.dispatch(GGPlot)(plot.base)"
+  - "# ggrepel test pattern:\nfrom ggplot2_py import ggplot_build, ggplot, aes, geom_point\nbuilt = ggplot_build(ggplot(df, aes('x','y')) + geom_text_repel())"
+tested_on: "ggplot2-python@4.0.2.9000"

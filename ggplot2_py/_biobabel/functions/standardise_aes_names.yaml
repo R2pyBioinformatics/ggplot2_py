@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.standardise_aes_names.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.standardise_aes_names
+import_path: ggplot2_py.standardise_aes_names
+execution_class: stateless
+intent: []
+description: Standardise a sequence of aesthetic names to their canonical forms.
+parameters:
+- name: aes_names
+  type: Iterable[str]
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: List[str]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

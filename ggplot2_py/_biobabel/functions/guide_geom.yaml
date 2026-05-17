@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.guide_geom.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.guide_geom
+import_path: ggplot2_py.guide_geom
+execution_class: builder
+intent: []
+description: Legacy S3-style ``guide_geom`` dispatch.
+parameters:
+- name: guide
+  type: Any
+  required: true
+  default: null
+- name: layers
+  type: Any
+  required: false
+  default: null
+- name: default_mapping
+  type: Any
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

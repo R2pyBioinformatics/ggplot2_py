@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.panel_rows.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.panel_rows
+import_path: ggplot2_py.panel_rows
+execution_class: stateless
+intent: []
+description: Return the row range of panels in a gtable.
+parameters:
+- name: table
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Dict[str, int]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.scale_type.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_type
+import_path: ggplot2_py.scale_type
+execution_class: builder
+intent: []
+description: Determine the appropriate scale type for data *x*.
+parameters:
+- name: x
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: List[str]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

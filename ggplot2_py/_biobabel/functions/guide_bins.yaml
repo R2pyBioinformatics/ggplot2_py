@@ -1,0 +1,56 @@
+# Auto-generated stub for ggplot2_py.guide_bins.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.guide_bins
+import_path: ggplot2_py.guide_bins
+execution_class: builder
+intent: []
+description: Create a binned legend guide.
+parameters:
+- name: title
+  type: Any
+  required: false
+  default: waiver()
+- name: theme
+  type: Any
+  required: false
+  default: null
+- name: angle
+  type: Optional[float]
+  required: false
+  default: null
+- name: position
+  type: Optional[str]
+  required: false
+  default: null
+- name: direction
+  type: Optional[str]
+  required: false
+  default: null
+- name: override_aes
+  type: Optional[Dict[str, Any]]
+  required: false
+  default: null
+- name: reverse
+  type: bool
+  required: false
+  default: false
+- name: order
+  type: int
+  required: false
+  default: 0
+- name: show_limits
+  type: Optional[bool]
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: GuideBins
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

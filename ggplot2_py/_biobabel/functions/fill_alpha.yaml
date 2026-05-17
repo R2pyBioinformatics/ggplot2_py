@@ -1,0 +1,26 @@
+# Auto-generated stub for ggplot2_py.fill_alpha.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.fill_alpha
+import_path: ggplot2_py.fill_alpha
+execution_class: stateless
+intent: []
+description: 'Apply *alpha* to *fill* — colour strings get ``scales::alpha``,
+
+  pattern fills (gradient / pattern objects) get ``pattern_alpha``.'
+parameters:
+- name: fill
+  type: Any
+  required: true
+  default: null
+- name: alpha
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

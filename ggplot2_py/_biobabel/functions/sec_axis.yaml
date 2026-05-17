@@ -1,0 +1,40 @@
+# Auto-generated stub for ggplot2_py.sec_axis.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.sec_axis
+import_path: ggplot2_py.sec_axis
+execution_class: stateless
+intent: []
+description: Create a secondary axis specification.
+parameters:
+- name: transform
+  type: Optional[Callable]
+  required: false
+  default: null
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: breaks
+  type: Any
+  required: false
+  default: null
+- name: labels
+  type: Any
+  required: false
+  default: null
+- name: guide
+  type: Any
+  required: false
+  default: null
+- name: trans
+  type: Optional[Callable]
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: AxisSecondary
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

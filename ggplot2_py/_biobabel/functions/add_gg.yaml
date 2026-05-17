@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.add_gg.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.add_gg
+import_path: ggplot2_py.add_gg
+execution_class: stateless
+intent: []
+description: Implement the ``+`` operator for gg objects.
+parameters:
+- name: e1
+  type: Any
+  required: true
+  default: null
+- name: e2
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

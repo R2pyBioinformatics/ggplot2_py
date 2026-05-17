@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.find_scale.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.find_scale
+import_path: ggplot2_py.find_scale
+execution_class: stateless
+intent: []
+description: Auto-detect an appropriate scale for aesthetic *aes* and data *x*.
+parameters:
+- name: aes
+  type: str
+  required: true
+  default: null
+- name: x
+  type: Any
+  required: true
+  default: null
+- name: env
+  type: Optional[Any]
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Optional[Scale]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

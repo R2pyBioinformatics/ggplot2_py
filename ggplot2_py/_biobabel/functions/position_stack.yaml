@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.position_stack.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.position_stack
+import_path: ggplot2_py.position_stack
+execution_class: builder
+intent: []
+description: Create a stack position adjustment.
+parameters:
+- name: vjust
+  type: float
+  required: false
+  default: 1.0
+- name: reverse
+  type: bool
+  required: false
+  default: false
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: PositionStack
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

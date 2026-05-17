@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.expansion.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.expansion
+import_path: ggplot2_py.expansion
+execution_class: builder
+intent: []
+description: Generate an expansion vector for scale padding.
+parameters:
+- name: mult
+  type: Union[float, Sequence[float]]
+  required: false
+  default: 0
+- name: add
+  type: Union[float, Sequence[float]]
+  required: false
+  default: 0
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: np.ndarray
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

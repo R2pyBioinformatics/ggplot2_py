@@ -1,0 +1,16 @@
+# Auto-generated stub for ggplot2_py.reset_geom_defaults.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.reset_geom_defaults
+import_path: ggplot2_py.reset_geom_defaults
+execution_class: stateless
+intent: []
+description: Roll back every prior ``update_geom_defaults`` call.
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: None
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

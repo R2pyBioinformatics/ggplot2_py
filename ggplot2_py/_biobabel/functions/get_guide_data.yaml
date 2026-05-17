@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.get_guide_data.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.get_guide_data
+import_path: ggplot2_py.get_guide_data
+execution_class: stateless
+intent: []
+description: Retrieve guide data for a given aesthetic (stub).
+parameters:
+- name: plot
+  type: Any
+  required: false
+  default: null
+- name: aesthetic
+  type: str
+  required: false
+  default: colour
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

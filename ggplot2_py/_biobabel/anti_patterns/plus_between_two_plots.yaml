@@ -1,0 +1,37 @@
+id: ggplot2_py.plus_between_two_plots
+name: "`p1 + p2` between two GGPlot objects"
+applicable_to:
+  - ggplot2_py.plus_accumulation
+detection:
+  regex: '\)\s*\+\s*ggplot\s*\('
+  static_only: true
+why_bad: |
+  ggplot2's `+` adds Layer/Scale/Theme/Facet/Coord/Labels objects to a GGPlot.
+  It does NOT compose two GGPlot objects side-by-side. The `update_ggplot`
+  singledispatch in plot.py has no registration for `GGPlot`, so `p1 + p2`
+  falls into the generic fallback and raises:
+
+      Cannot add a `GGPlot` to a ggplot object.
+
+  Users coming from patchwork (R) or other plot-composition libraries expect
+  this to work. It doesn't.
+
+  To compose plots side-by-side or in a grid, use a layout library
+  (patchwork-python when it's available) or build a composite Gtable
+  directly using gtable-python primitives.
+correct_pattern: null
+code_example_wrong: |
+  p1 = ggplot(mpg, aes(x="displ", y="hwy")) + geom_point()
+  p2 = ggplot(mpg, aes(x="cty", y="hwy")) + geom_point()
+  combo = p1 + p2          # ← raises "Cannot add `GGPlot` to a ggplot object"
+code_example_right: |
+  # No first-class composition operator in ggplot2_py.
+  # Render each plot separately and combine externally:
+  from grid_py import Unit
+  from gtable_py import gtable_matrix
+  composite = gtable_matrix(
+      name="side_by_side",
+      grobs=[[p1.to_grob(), p2.to_grob()]],     # if to_grob() exists, else use ggplot_build + render
+      widths=Unit([1, 1], "null"),
+      heights=Unit([1], "null"),
+  )

@@ -1,0 +1,64 @@
+# Auto-generated stub for ggplot2_py.stat_qq_line.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.stat_qq_line
+import_path: ggplot2_py.stat_qq_line
+execution_class: builder
+intent: []
+description: Q-Q reference line.
+parameters:
+- name: mapping
+  type: Optional[Mapping]
+  required: false
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: geom
+  type: str
+  required: false
+  default: abline
+- name: position
+  type: str
+  required: false
+  default: identity
+- name: distribution
+  type: Any
+  required: false
+  default: null
+- name: dparams
+  type: Optional[Dict[str, Any]]
+  required: false
+  default: null
+- name: line_p
+  type: Tuple[float, float]
+  required: false
+  default: (0.25, 0.75)
+- name: fullrange
+  type: bool
+  required: false
+  default: false
+- name: na_rm
+  type: bool
+  required: false
+  default: false
+- name: show_legend
+  type: Optional[bool]
+  required: false
+  default: null
+- name: inherit_aes
+  type: bool
+  required: false
+  default: true
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

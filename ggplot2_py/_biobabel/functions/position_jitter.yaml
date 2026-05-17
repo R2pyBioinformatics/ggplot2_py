@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.position_jitter.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.position_jitter
+import_path: ggplot2_py.position_jitter
+execution_class: builder
+intent: []
+description: Create a jitter position adjustment.
+parameters:
+- name: width
+  type: Optional[float]
+  required: false
+  default: null
+- name: height
+  type: Optional[float]
+  required: false
+  default: null
+- name: seed
+  type: Any
+  required: false
+  default: .nan
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: PositionJitter
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

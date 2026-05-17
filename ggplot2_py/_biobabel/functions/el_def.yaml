@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.el_def.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.el_def
+import_path: ggplot2_py.el_def
+execution_class: stateless
+intent: []
+description: Define an entry in the element tree.
+parameters:
+- name: class_
+  type: Any
+  required: false
+  default: null
+- name: inherit
+  type: Optional[Union[str, List[str]]]
+  required: false
+  default: null
+- name: description
+  type: Optional[str]
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Dict[str, Any]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

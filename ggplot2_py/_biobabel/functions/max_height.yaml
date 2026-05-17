@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.max_height.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.max_height
+import_path: ggplot2_py.max_height
+execution_class: stateless
+intent: []
+description: Largest height over a list of grobs / units, returned in cm.
+parameters:
+- name: grobs
+  type: Any
+  required: true
+  default: null
+- name: value_only
+  type: bool
+  required: false
+  default: false
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.update_labels.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.update_labels
+import_path: ggplot2_py.update_labels
+execution_class: stateless
+intent: []
+description: Merge *labels* into *plot*'s existing labels.
+parameters:
+- name: plot
+  type: Any
+  required: true
+  default: null
+- name: labels
+  type: Union[Labels, Dict[str, Any]]
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

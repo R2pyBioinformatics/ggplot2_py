@@ -1,0 +1,82 @@
+id: ggplot2_py.remove_missing
+import_path: ggplot2_py.remove_missing
+execution_class: dataframe_mutation
+intent:
+  - "drop NA/non-finite rows from layer data with the standard ggplot2 warning"
+  - "extension stats/geoms should call before their compute step"
+description: |
+  Drop rows containing NA (and optionally non-finite) values from a layer
+  data frame. Emit a one-line warning unless `na_rm=True` is set. This is
+  the canonical NA-handling step that every built-in `Stat.compute_layer`
+  and `Geom.draw_layer` runs before its computation, so extension
+  geoms/stats should call it too.
+
+  **For extension stats and geoms**: import as
+  `from ggplot2_py.layer import remove_missing` or
+  `from ggplot2_py._utils import remove_missing`. Call at the top of
+  your `compute_panel` / `compute_layer` / `draw_panel` with::
+
+      data = remove_missing(
+          data, na_rm=na_rm, vars=list(self.required_aes), name="my_geom",
+          finite=True,   # set True if you also want to drop inf
+      )
+
+  ggalluvial-python does this in `stat_alluvium.py` and `stat_flow.py`.
+
+  Behaviour:
+    - If `vars=None`, every column is checked.
+    - `finite=False` (default) → drop NA only.
+    - `finite=True` → drop NA *and* `inf` / `-inf` in numeric columns
+      (matches R `remove_missing(finite=TRUE)`).
+    - If rows are removed AND `na_rm=False`, emits a `UserWarning` like
+      `Removed N rows containing missing values (geom_name).`
+    - If `na_rm=True`, rows are removed silently.
+parameters:
+  - name: df
+    type: pd.DataFrame
+    required: true
+    default: null
+  - name: vars
+    type: "list[str] | None"
+    required: false
+    default: null
+    description: "Columns to check. None → all columns."
+  - name: na_rm
+    type: bool
+    required: false
+    default: false
+    description: "If False, emit a warning on removal. If True, drop silently. Forwarded from the geom/stat's `na_rm` param."
+  - name: name
+    type: str
+    required: false
+    default: "''"
+    description: "Name of the calling layer for the warning message, e.g. 'geom_text_repel'."
+  - name: finite
+    type: bool
+    required: false
+    default: false
+    description: "If True, also drop rows with inf / -inf in numeric columns."
+requires: {}
+writes: {}
+returns_kind: new_object
+returns_type: pd.DataFrame
+next:
+  - ggplot2_py.layer
+failure_fixes:
+  - when: "geom emits a 'Removed N rows containing missing values' warning when na_rm=True"
+    suggest:
+      - "Make sure your geom forwards na_rm from its constructor into the remove_missing call: na_rm=params.get('na_rm', False)."
+  - when: "want to drop rows with infinity (e.g. log10(0) → -inf)"
+    suggest:
+      - "Pass finite=True. Default checks NA only; non-finite (inf, -inf) pass through unchanged."
+  - when: "the dataframe gets an unexpected reindex"
+    suggest:
+      - "remove_missing calls .reset_index(drop=True). If you rely on original index labels, capture them before calling."
+  - when: "vars contains a column not in df"
+    suggest:
+      - "Filtered out internally — only present columns are checked. Pass list(self.required_aes & set(df.columns)) to be explicit."
+examples:
+  - "data = remove_missing(data, na_rm=False, vars=['x','y','label'], name='geom_text_repel')"
+  - "data = remove_missing(data, na_rm=na_rm, vars=list(self.required_aes), name=type(self).__name__, finite=True)"
+  - "remove_missing(df, na_rm=True)  # silent, all cols"
+tested_on: "ggplot2-python@4.0.2.9000"

@@ -1,0 +1,111 @@
+id: ggplot2_py.scale_color_gradientn
+import_path: ggplot2_py.scale_color_gradientn
+execution_class: builder
+intent:
+  - "n-color custom gradient for a numeric color aesthetic"
+  - "wrap any matplotlib / external colormap as a ggplot scale"
+description: |
+  N-color custom gradient. You supply a list of colors; ggplot interpolates
+  between consecutive colors along the data range (evenly spaced by default,
+  or at the positions given in `values=`).
+
+  Choosing between the gradient family:
+
+  - `scale_color_gradient`  — 2 colors (low, high). Sequential.
+  - `scale_color_gradient2` — 3 colors with explicit midpoint. Diverging.
+  - `scale_color_gradientn` — **N custom colors at arbitrary positions**. Most
+    general; what you reach for when wrapping an external colormap or building
+    a non-standard ramp.
+
+  Wraps the continuous `pal_gradient_n` palette factory — see `scales.Palette`.
+parameters:
+  - name: colours
+    type: "list[str]"
+    required: false
+    default: null
+    description: "Colors along the ramp. Either `colours=` (R spelling) or `colors=` (US spelling) — pass exactly one."
+  - name: colors
+    type: "list[str]"
+    required: false
+    default: null
+    description: "US-spelling alias for `colours=`."
+  - name: values
+    type: "list[float] | None"
+    required: false
+    default: null
+    description: |
+      Positions (in [0, 1]) where each color anchors. Same length as `colours=`.
+      Default = evenly spaced. Use to skew the ramp (e.g. fast change in the
+      first 10% of the range).
+  - name: name
+    type: "str | None"
+    required: false
+    default: null
+    description: "Colorbar title."
+  - name: limits
+    type: "tuple[float, float] | None"
+    required: false
+    default: null
+    description: "Data range mapped to [0, 1] of the ramp."
+  - name: breaks
+    type: "list[float] | callable | None"
+    required: false
+    default: null
+    description: "Tick positions."
+  - name: labels
+    type: "callable | list | None"
+    required: false
+    default: null
+    description: "Tick formatter."
+  - name: na_value
+    type: "str"
+    required: false
+    default: "grey50"
+    description: "Color for NA. Python uses `na_value=`."
+  - name: guide
+    type: "str | Guide"
+    required: false
+    default: "colourbar"
+    description: "'colourbar' or 'legend'."
+  - name: transform
+    type: "str | Transform"
+    required: false
+    default: "identity"
+    description: "Pre-transform of the data scale."
+  - name: space
+    type: "str"
+    required: false
+    default: "Lab"
+    description: "Color interpolation space; 'Lab' recommended."
+  - name: aesthetics
+    type: "str | list[str]"
+    required: false
+    default: "colour"
+    description: "'color' / 'colour' are aliases."
+requires: {}
+writes: {}
+returns_kind: new_object
+returns_type: Scale
+next: []
+failure_fixes:
+  - when: "TypeError: scale_color_gradientn() requires exactly one of `colours=` or `colors=`"
+    suggest:
+      - "Pass exactly one of the two aliases, not both."
+  - when: "ramp has banding / abrupt color jumps in the middle"
+    suggest:
+      - "You probably passed too few colors; gradientn interpolates linearly. Use 5–9 colors for a smooth ramp."
+      - "Or set `space='Lab'` (default) — interpolating in 'rgb' often produces ugly mid-tones."
+  - when: "len(values) != len(colours)"
+    suggest:
+      - "`values=` must be the same length as `colours=` and span [0, 1]."
+  - when: "wanted a matplotlib colormap — how to use it?"
+    suggest:
+      - "Sample the colormap to a list: `colors = [matplotlib.cm.viridis(x) for x in np.linspace(0, 1, 9)]` and pass to `colours=`."
+      - "Or use `scale_color_viridis_c()` directly for viridis specifically."
+  - when: "TypeError: got an unexpected keyword argument 'na.value'"
+    suggest:
+      - "Use `na_value=` — Python uses underscores."
+examples:
+  - "p + scale_color_gradientn(colours=['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'])"
+  - "p + scale_color_gradientn(colours=['blue', 'white', 'red'], values=[0, 0.2, 1.0])"
+tested_on: "ggplot2-python@4.0.2.9000"

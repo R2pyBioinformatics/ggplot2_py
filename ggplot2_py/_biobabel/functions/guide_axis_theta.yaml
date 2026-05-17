@@ -1,0 +1,44 @@
+# Auto-generated stub for ggplot2_py.guide_axis_theta.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.guide_axis_theta
+import_path: ggplot2_py.guide_axis_theta
+execution_class: builder
+intent: []
+description: Create an angle axis guide for radial coordinates.
+parameters:
+- name: title
+  type: Any
+  required: false
+  default: waiver()
+- name: theme
+  type: Any
+  required: false
+  default: null
+- name: angle
+  type: Any
+  required: false
+  default: waiver()
+- name: minor_ticks
+  type: bool
+  required: false
+  default: false
+- name: cap
+  type: Union[str, bool]
+  required: false
+  default: none
+- name: order
+  type: int
+  required: false
+  default: 0
+- name: position
+  type: Any
+  required: false
+  default: waiver()
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: GuideAxisTheta
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,30 @@
+# Auto-generated stub for ggplot2_py.update_ggplot.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.update_ggplot
+import_path: ggplot2_py.update_ggplot
+execution_class: stateless
+intent: []
+description: 'Add *obj* to *plot*.  Open generic — register new types with
+
+  ``@update_ggplot.register(YourType)``.'
+parameters:
+- name: obj
+  type: Any
+  required: true
+  default: null
+- name: plot
+  type: GGPlot
+  required: true
+  default: null
+- name: object_name
+  type: str
+  required: false
+  default: ''
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: GGPlot
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

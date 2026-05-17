@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.scale_continuous_identity.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_continuous_identity
+import_path: ggplot2_py.scale_continuous_identity
+execution_class: builder
+intent: []
+description: Generic continuous identity scale.
+parameters:
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: true
+  default: null
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: guide
+  type: str
+  required: false
+  default: none
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleContinuousIdentity
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

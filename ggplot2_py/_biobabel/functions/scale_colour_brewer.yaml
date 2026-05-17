@@ -1,0 +1,40 @@
+# Auto-generated stub for ggplot2_py.scale_colour_brewer.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_colour_brewer
+import_path: ggplot2_py.scale_colour_brewer
+execution_class: builder
+intent: []
+description: ColorBrewer discrete colour scale.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: type
+  type: str
+  required: false
+  default: seq
+- name: palette
+  type: Union[int, str]
+  required: false
+  default: 1
+- name: direction
+  type: int
+  required: false
+  default: 1
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: colour
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleDiscrete
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

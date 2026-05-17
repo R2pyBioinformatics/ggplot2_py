@@ -1,0 +1,72 @@
+# Auto-generated stub for ggplot2_py.stat_summary2d.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.stat_summary2d
+import_path: ggplot2_py.stat_summary2d
+execution_class: builder
+intent: []
+description: 2D binning and summary.
+parameters:
+- name: mapping
+  type: Optional[Mapping]
+  required: false
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: geom
+  type: str
+  required: false
+  default: tile
+- name: position
+  type: str
+  required: false
+  default: identity
+- name: bins
+  type: int
+  required: false
+  default: 30
+- name: binwidth
+  type: Any
+  required: false
+  default: null
+- name: breaks
+  type: Any
+  required: false
+  default: null
+- name: drop
+  type: bool
+  required: false
+  default: true
+- name: fun
+  type: Any
+  required: false
+  default: mean
+- name: fun_args
+  type: Optional[Dict[str, Any]]
+  required: false
+  default: null
+- name: na_rm
+  type: bool
+  required: false
+  default: false
+- name: show_legend
+  type: Optional[bool]
+  required: false
+  default: null
+- name: inherit_aes
+  type: bool
+  required: false
+  default: true
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

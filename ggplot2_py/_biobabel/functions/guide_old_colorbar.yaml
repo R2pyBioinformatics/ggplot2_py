@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.guide_old_colorbar.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.guide_old_colorbar
+import_path: ggplot2_py.guide_old_colorbar
+execution_class: builder
+intent: []
+description: Deprecated forwarder to :func:`guide_colourbar`.
+parameters:
+- name: args
+  type: Any
+  required: true
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

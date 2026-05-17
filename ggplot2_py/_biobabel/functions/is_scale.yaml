@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.is_scale.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.is_scale
+import_path: ggplot2_py.is_scale
+execution_class: stateless
+intent: []
+description: Check whether *x* is a Scale instance.
+parameters:
+- name: x
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: bool
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

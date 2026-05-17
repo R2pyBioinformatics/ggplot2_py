@@ -1,0 +1,52 @@
+# Auto-generated stub for ggplot2_py.geom_sf_label.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.geom_sf_label
+import_path: ggplot2_py.geom_sf_label
+execution_class: builder
+intent: []
+description: Create a label layer for sf geometries.
+parameters:
+- name: mapping
+  type: Optional[Mapping]
+  required: false
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: stat
+  type: str
+  required: false
+  default: sf_coordinates
+- name: position
+  type: str
+  required: false
+  default: nudge
+- name: na_rm
+  type: bool
+  required: false
+  default: false
+- name: show_legend
+  type: Any
+  required: false
+  default: null
+- name: inherit_aes
+  type: bool
+  required: false
+  default: true
+- name: parse
+  type: bool
+  required: false
+  default: false
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

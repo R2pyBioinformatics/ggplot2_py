@@ -1,0 +1,74 @@
+schema_version: 2
+
+repo: https://github.com/Bio-Babel/ggplot2-python
+distribution: ggplot2-python
+import_name: ggplot2_py
+display_name: "ggplot2-python — grammar of graphics for Python (R ggplot2 port)"
+contract_class: mixed
+tier: 2
+type: use
+maturity: beta
+
+r_package:
+  package: ggplot2
+  repo: https://github.com/tidyverse/ggplot2
+  version_or_commit: "4.0.2.9000 @ c02c05a"
+  fidelity: partial
+
+capabilities:
+  - layered-grammar-of-graphics
+  - aes-mapping
+  - geom-stat-position-scale-coord-facet-theme
+  - faceting-wrap-grid
+  - statistical-transforms
+  - axis-and-color-scales
+
+domain_tags:
+  - visualization
+  - publication-graphics
+
+task_tags:
+  - scatter-plot
+  - line-plot
+  - bar-plot
+  - histogram
+  - boxplot
+  - violin-plot
+  - smoothed-trend
+  - faceted-figure
+  - log-axis
+  - custom-theme
+  - colored-by-group
+
+foundation:
+  - grid_py
+  - scales
+  - gtable_py
+
+triggers:
+  - intent: "ggplot in Python"
+    confidence: 0.98
+  - intent: "scatter plot with smoothed trend"
+    confidence: 0.92
+  - intent: "faceted plot by category"
+    confidence: 0.92
+  - intent: "publication-quality plot"
+    confidence: 0.85
+  - intent: "layered statistical graphic"
+    confidence: 0.9
+  - intent: "colored by group"
+    confidence: 0.8
+
+not_when:
+  - "single bar chart of one number — matplotlib bar is simpler"
+  - "interactive widget — use plotly / bokeh instead"
+
+recipes:
+  - id: ggplot2_py.scatter_smooth_facet
+    task_tags: [scatter-plot, smoothed-trend, faceted-figure]
+    path: recipes/scatter_smooth_facet.py
+    description: "Canonical mpg displ-vs-hwy scatter with geom_smooth and facet_wrap(~class)."
+  - id: ggplot2_py.minimal_scatter
+    task_tags: [scatter-plot]
+    path: recipes/minimal_scatter.py
+    description: "The two-line ggplot — ggplot(mpg, aes(x='displ', y='hwy')) + geom_point()."

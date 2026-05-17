@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.draw_key_smooth.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.draw_key_smooth
+import_path: ggplot2_py.draw_key_smooth
+execution_class: plot
+intent: []
+description: Draw a legend key for smooth geoms (ribbon + line).
+parameters:
+- name: data
+  type: Dict[str, Any]
+  required: true
+  default: null
+- name: params
+  type: Dict[str, Any]
+  required: true
+  default: null
+- name: size
+  type: Any
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

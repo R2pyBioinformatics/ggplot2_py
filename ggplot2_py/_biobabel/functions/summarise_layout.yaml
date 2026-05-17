@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.summarise_layout.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.summarise_layout
+import_path: ggplot2_py.summarise_layout
+execution_class: stateless
+intent: []
+description: Summarise the layout / faceting.
+parameters:
+- name: plot
+  type: GGPlot
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Dict[str, Any]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

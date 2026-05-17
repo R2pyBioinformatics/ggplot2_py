@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.fortify_cld.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.fortify_cld
+import_path: ggplot2_py.fortify_cld
+execution_class: stateless
+intent: []
+description: Stub for R ``fortify.cld`` -- deferred, no Python equivalent.
+parameters:
+- name: model
+  type: Any
+  required: true
+  default: null
+- name: data
+  type: Any
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: pd.DataFrame
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

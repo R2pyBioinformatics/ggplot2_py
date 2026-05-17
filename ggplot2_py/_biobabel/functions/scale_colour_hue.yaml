@@ -1,0 +1,52 @@
+# Auto-generated stub for ggplot2_py.scale_colour_hue.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_colour_hue
+import_path: ggplot2_py.scale_colour_hue
+execution_class: builder
+intent: []
+description: Evenly spaced hue colour scale for discrete data.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: h
+  type: Sequence[float]
+  required: false
+  default: (15, 375)
+- name: c
+  type: float
+  required: false
+  default: 100
+- name: l
+  type: float
+  required: false
+  default: 65
+- name: h_start
+  type: float
+  required: false
+  default: 0
+- name: direction
+  type: int
+  required: false
+  default: 1
+- name: na_value
+  type: str
+  required: false
+  default: grey50
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: false
+  default: colour
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleDiscrete
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

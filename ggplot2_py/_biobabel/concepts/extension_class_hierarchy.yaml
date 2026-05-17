@@ -1,0 +1,106 @@
+id: ggplot2_py.extension_class_hierarchy
+name: Extension class hierarchy (Geom/Stat/Scale/Coord/Position/Facet/Guide)
+category: oop
+description: |
+  ggplot2 is built on seven abstract base classes that together form the
+  extension surface. Every concrete geometry, statistical transform, scale,
+  coordinate system, position adjustment, facet specification, and guide is
+  a subclass of one of these. The Python port mirrors the R hierarchy
+  one-to-one, with the addition of `Protocol` classes (in
+  `ggplot2_py.protocols`) for structural typing of duck-typed input.
+
+  The 7 base classes (all live in submodules; the top-level `__init__.py`
+  re-exports them):
+
+    - `Geom`     (`ggplot2_py.geom.Geom`)      — drawing logic (`draw_panel`,
+                  `draw_group`, `draw_layer`, `draw_key`, `setup_data`,
+                  `setup_params`, plus class slots `required_aes`,
+                  `default_aes`, `non_missing_aes`, `extra_params`).
+    - `Stat`     (`ggplot2_py.stat.Stat`)      — statistical transform
+                  (`compute_layer`, `compute_panel`, `compute_group`,
+                  `setup_data`, `setup_params`, `required_aes`,
+                  `default_aes`, `dropped_aes`).
+    - `Scale`    (`ggplot2_py.scale.Scale`)    — aesthetic mapping (override
+                  by calling `continuous_scale` / `discrete_scale` /
+                  `binned_scale` with `super_class=YourScale`).
+    - `Coord`    (`ggplot2_py.coord.Coord`)    — coordinate system
+                  (`transform`, `setup_panel_params`, `render_axis_h`,
+                  `render_axis_v`, `aspect`).
+    - `Position` (`ggplot2_py.position.Position`) — position adjustment
+                  (`compute_layer`, `compute_panel`, `setup_params`,
+                  `setup_data`).
+    - `Facet`    (`ggplot2_py.facet.Facet`)    — panel layout
+                  (`compute_layout`, `map_data`, `draw_panels`,
+                  `setup_params`, `setup_data`).
+    - `Guide`    (`ggplot2_py.guide.Guide`)    — legend / axis rendering
+                  (`train`, `merge`, `transform`, `draw`).
+
+  Two-level user-facing pattern: every concrete subclass `GeomX` ships with
+  a paired factory function `geom_x(...)` that returns a `Layer(geom=GeomX,
+  ...)`. The factory is what users call; the class is what extension
+  authors subclass. Same for `Stat`/`stat_*`, `Position`/`position_*`,
+  `Facet`/`facet_*`, `Coord`/`coord_*`, `Scale`/`scale_*_*`,
+  `Guide`/`guide_*`.
+
+  Concrete implementations live in submodules:
+    - `ggplot2_py.geom.GeomText`, `GeomLabel`, `GeomRect`, `GeomPolygon`,
+       `GeomPoint`, ... (used as subclass parents by ggrepel/ggalluvial).
+    - `ggplot2_py.stat.StatBin`, `StatCount`, `StatIdentity`, ...
+    - `ggplot2_py.coord.CoordCartesian`, `CoordFlip`, `CoordPolar`, ...
+    - `ggplot2_py.position.PositionDodge`, `PositionStack`, ...
+    - `ggplot2_py.facet.FacetGrid`, `FacetWrap`, `FacetNull`.
+
+  Real downstream extension examples:
+    - ggrepel-python's `GeomTextRepel(GeomText)` overrides `draw_panel`
+      to inject a force-directed label layout step (see
+      `ggrepel_py/geom_text_repel.py`).
+    - ggalluvial-python's `StatAlluvium(Stat)` overrides `compute_panel`
+      to reshape long-form alluvial data, and `GeomStratum(GeomRect)`
+      sets a custom `draw_key = draw_key_polygon`.
+    - ggrepel-python's `PositionNudgeRepel(PositionNudge)` overrides
+      `compute_layer` to expose nudge offsets to the geom downstream.
+
+  In all cases the extension class is then wrapped in a factory:
+  `def geom_text_repel(...): return layer(geom=GeomTextRepel, ...)`.
+invariants:
+  - "A concrete `GeomX` must set class attrs: `required_aes` (tuple of str), `default_aes` (Mapping), and pick a `draw_key` (one of `draw_key_point`/`draw_key_path`/`draw_key_rect`/`draw_key_polygon`/`draw_key_text`/`draw_key_label`/`draw_key_blank` or a custom callable)."
+  - "To render, override at least one of `draw_panel(data, panel_params, coord, ...)` or `draw_group(data, panel_params, coord, ...)`; never both unless you call `super()`."
+  - "A concrete `StatX` must override `compute_group` (per-group) or `compute_panel` (whole-panel batch) and set `required_aes` / `default_aes`."
+  - "`Stat.compute_layer` is the top-level entry point — only override it when you need to side-step the per-group/panel split (rare)."
+  - "To make a new Scale, do NOT subclass `Scale` directly — call `continuous_scale(super_class=YourScale, ...)` or `discrete_scale(...)` or `binned_scale(...)` from within your scale's factory. `Scale` itself is abstract."
+  - "A Position subclass must override `compute_layer` or `compute_panel` and may override `setup_params(data, params)` to validate inputs."
+  - "Class-level slots (`required_aes`, `default_aes`, `extra_params`, `non_missing_aes`, `rename_size`, `optional_aes`) are inheritable — R-style class slots, not instance attributes."
+  - "Concrete classes do NOT need `__init__`; ggplot2-python uses class objects directly (the `Layer` holds the class via `layer(geom=GeomX)`)."
+  - "Use `ggproto_parent(ParentClass, self).method(...)` to invoke a parent's method explicitly when overriding (R idiom preserved)."
+mental_model:
+  for_r_users: |
+    Same as R: `ggproto("MyGeom", Geom, ...)` becomes `class MyGeom(Geom):`
+    in Python. `extends` becomes a Python `class X(Parent):`. The slot
+    names (`required_aes`, `default_aes`, `draw_panel`, etc.) are
+    identical — extension authors porting R code can rename the class and
+    keep the slot contents almost verbatim. `ggproto_parent(Parent, self)`
+    is preserved as `ggproto_parent(Parent, self).method(...)`.
+  for_python_users: |
+    These are plain Python classes with class-level attributes acting as
+    "slots". You subclass them like any abstract base. The only nuance:
+    most overrides are STATIC methods or take `self` plus a dataframe and
+    `params` dict. Read the parent's signature carefully — `draw_panel`
+    takes `(self, data, panel_params, coord, **kwargs)`, not the
+    conventional `(self, *args, **kwargs)`.
+  general: |
+    Extension author workflow:
+      1. Pick the right base class (Geom for drawing, Stat for transform,
+         Position for offset, Scale via `*_scale()` factory, etc.).
+      2. Subclass it. Override the relevant `compute_*` / `draw_*`
+         methods. Set class-level slots.
+      3. Write a paired factory function `geom_x(mapping=None, data=None,
+         *, stat=..., position=..., show_legend=None, inherit_aes=True,
+         **kwargs) -> Layer` that wraps `layer(geom=YourGeomClass, ...)`.
+      4. Optionally register an entry point under one of the
+         `ggplot2_py.{geoms,stats,positions,scales,coords,facets}` groups
+         so `discover_extensions()` picks the class up by string name.
+related_concepts:
+  - ggplot2_py.plus_accumulation
+  - ggplot2_py.aes_mapping
+  - ggplot2_py.layer_inheritance
+  - ggplot2_py.waiver_sentinel

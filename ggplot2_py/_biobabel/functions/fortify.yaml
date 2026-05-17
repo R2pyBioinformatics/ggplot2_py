@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.fortify.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.fortify
+import_path: ggplot2_py.fortify
+execution_class: stateless
+intent: []
+description: Convert *model* to a :class:`~pandas.DataFrame` suitable for plotting.
+parameters:
+- name: model
+  type: Any
+  required: true
+  default: null
+- name: data
+  type: Optional[pd.DataFrame]
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Any
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

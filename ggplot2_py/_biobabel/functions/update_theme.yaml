@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.update_theme.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.update_theme
+import_path: ggplot2_py.update_theme
+execution_class: stateless
+intent: []
+description: Update the current global theme in-place.
+parameters:
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Optional[Theme]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

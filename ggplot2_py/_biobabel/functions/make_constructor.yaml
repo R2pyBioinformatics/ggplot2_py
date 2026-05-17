@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.make_constructor.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.make_constructor
+import_path: ggplot2_py.make_constructor
+execution_class: stateless
+intent: []
+description: Synthesize a ``geom_*()`` / ``stat_*()`` constructor from a class.
+parameters:
+- name: cls
+  type: Type
+  required: true
+  default: null
+- name: checks
+  type: Optional[List[Callable[[Dict[str, Any]], None]]]
+  required: false
+  default: null
+- name: omit
+  type: Tuple[str, ...]
+  required: false
+  default: ()
+- name: extras
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Callable[..., Any]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

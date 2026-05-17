@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.scale_discrete_manual.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_discrete_manual
+import_path: ggplot2_py.scale_discrete_manual
+execution_class: builder
+intent: []
+description: Generic discrete manual scale.
+parameters:
+- name: aesthetics
+  type: Union[str, List[str]]
+  required: true
+  default: null
+- name: values
+  type: Any
+  required: true
+  default: null
+- name: breaks
+  type: Any
+  required: false
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleDiscrete
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,16 @@
+# Auto-generated stub for ggplot2_py.waiver.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.waiver
+import_path: ggplot2_py.waiver
+execution_class: stateless
+intent: []
+description: Return a ``Waiver`` sentinel value.
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Waiver
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

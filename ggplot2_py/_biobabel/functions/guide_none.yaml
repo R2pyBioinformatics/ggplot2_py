@@ -1,0 +1,24 @@
+# Auto-generated stub for ggplot2_py.guide_none.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.guide_none
+import_path: ggplot2_py.guide_none
+execution_class: builder
+intent: []
+description: Create a guide that draws nothing.
+parameters:
+- name: title
+  type: Any
+  required: false
+  default: waiver()
+- name: position
+  type: Any
+  required: false
+  default: waiver()
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: GuideNone
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.label_bquote.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.label_bquote
+import_path: ggplot2_py.label_bquote
+execution_class: stateless
+intent: []
+description: Label facets with an expression-like string — Pythonic adaptation.
+parameters:
+- name: rows
+  type: Optional[Union[str, Callable]]
+  required: false
+  default: null
+- name: cols
+  type: Optional[Union[str, Callable]]
+  required: false
+  default: null
+- name: default
+  type: Any
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Callable
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

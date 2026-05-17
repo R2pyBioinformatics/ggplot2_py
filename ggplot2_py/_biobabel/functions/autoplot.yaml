@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.autoplot.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.autoplot
+import_path: ggplot2_py.autoplot
+execution_class: builder
+intent: []
+description: Create a complete ggplot appropriate to a particular data type.
+parameters:
+- name: obj
+  type: Any
+  required: true
+  default: null
+- name: args
+  type: Any
+  required: true
+  default: null
+- name: kwargs
+  type: Any
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ''
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

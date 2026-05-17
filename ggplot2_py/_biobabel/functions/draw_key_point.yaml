@@ -1,0 +1,71 @@
+id: ggplot2_py.draw_key_point
+import_path: ggplot2_py.draw_key_point
+execution_class: plot
+intent:
+  - "draw the legend key glyph for point-style geoms"
+  - "extension geom authors assign as their Geom.draw_key slot"
+description: |
+  Render the legend key (the small glyph beside each legend label) for a
+  point-style geom — a single coloured point, shape from `shape`, size
+  from `size`, stroke from `stroke`.
+
+  **draw_key_* protocol (applies to every draw_key_X in ggplot2_py.draw_key):**
+
+      def draw_key_*(data: dict, params: dict, size: Any = None) -> Grob
+
+    - `data`: dict-like of scaled aesthetics for ONE legend entry —
+      typically a one-row slice with `colour`, `fill`, `size`, `alpha`,
+      `shape`, `linewidth`, `linetype`, etc.
+    - `params`: extra layer parameters (e.g. `lineend`, `linejoin`).
+    - `size`: optional override for key dimensions (usually `None`; the
+      guide passes a `Unit` when needed).
+    - Returns: a `grid_py` Grob (or grob tree).
+
+  Every concrete `Geom` subclass sets a `draw_key` slot to one of these
+  functions (or a custom callable matching the signature). Extension
+  authors picking a key for a new geom should choose by visual semantics:
+
+    - point-like marker → `draw_key_point`
+    - line/path-only → `draw_key_path` (horizontal segment)
+    - filled rectangle / tile → `draw_key_rect`
+    - outlined filled polygon (e.g. ggalluvial's stratum) → `draw_key_polygon`
+    - text label (`geom_text`) → `draw_key_text`
+    - text with background (`geom_label`) → `draw_key_label`
+    - draw nothing → `draw_key_blank`
+
+  Users can override per-layer with `key_glyph=` on the geom factory, or
+  `show_legend=False` to hide the legend entirely. See concept
+  `ggplot2_py.extension_class_hierarchy`.
+parameters:
+  - name: data
+    type: "dict[str, Any]"
+    required: true
+    default: null
+    description: "Single-row aesthetic dict: colour, fill, size, alpha, shape, stroke."
+  - name: params
+    type: "dict[str, Any]"
+    required: true
+    default: null
+    description: "Layer-level params (often empty for point keys)."
+  - name: size
+    type: Any
+    required: false
+    default: null
+    description: "Optional key size override (usually None)."
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Grob
+next:
+  - ggplot2_py.guide_legend
+failure_fixes:
+  - when: "legend marker doesn't match the plot marker shape"
+    suggest:
+      - "Make sure your Geom sets `draw_key = draw_key_point` AND your data passes `shape` through `default_aes`. The key reads shape from data['shape']."
+  - when: "want the key to show a different shape than the geom"
+    suggest:
+      - "Pass key_glyph= to the geom factory: geom_point(..., key_glyph='circle') or key_glyph=draw_key_custom."
+examples:
+  - "class MyGeom(Geom):\n    draw_key = draw_key_point  # standard pattern"
+  - "geom_point(aes(color='class'), key_glyph='circle')  # override at use site"
+tested_on: "ggplot2-python@4.0.2.9000"

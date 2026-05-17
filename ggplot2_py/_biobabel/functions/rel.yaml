@@ -1,0 +1,20 @@
+# Auto-generated stub for ggplot2_py.rel.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.rel
+import_path: ggplot2_py.rel
+execution_class: builder
+intent: []
+description: Create a ``Rel`` (relative-size) object.
+parameters:
+- name: x
+  type: float
+  required: true
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Rel
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

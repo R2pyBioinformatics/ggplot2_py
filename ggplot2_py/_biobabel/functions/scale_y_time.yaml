@@ -1,0 +1,56 @@
+# Auto-generated stub for ggplot2_py.scale_y_time.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.scale_y_time
+import_path: ggplot2_py.scale_y_time
+execution_class: builder
+intent: []
+description: Datetime scale for the y position aesthetic.
+parameters:
+- name: name
+  type: Any
+  required: false
+  default: null
+- name: breaks
+  type: Any
+  required: false
+  default: null
+- name: labels
+  type: Any
+  required: false
+  default: null
+- name: minor_breaks
+  type: Any
+  required: false
+  default: null
+- name: limits
+  type: Optional[Any]
+  required: false
+  default: null
+- name: expand
+  type: Any
+  required: false
+  default: null
+- name: oob
+  type: Optional[Callable]
+  required: false
+  default: null
+- name: guide
+  type: Any
+  required: false
+  default: null
+- name: position
+  type: str
+  required: false
+  default: left
+- name: sec_axis
+  type: Any
+  required: false
+  default: null
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: ScaleContinuousPosition
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

@@ -1,0 +1,46 @@
+id: ggplot2_py.last_plot
+import_path: ggplot2_py.last_plot
+execution_class: stateless
+intent:
+  - "retrieve the most recently displayed plot (set by print_plot / set_last_plot)"
+description: |
+  Return the most recently displayed/registered plot, or `None` if no
+  plot has been set in this interpreter session yet.
+
+  Implementation: `last_plot = get_last_plot` — it's the same function,
+  re-exported under both names for R parity (`ggplot2::last_plot`) and
+  the Python-style `get_last_plot` accessor.
+
+  The "last plot" is a process-global in `ggplot2_py.plot._last_plot`,
+  updated by `print_plot()` (and explicitly via `set_last_plot()`). It is
+  the implicit default for `ggsave()` when no plot is provided.
+
+  CAVEATS:
+    - Returns None at interpreter start until something has been
+      displayed.
+    - Not thread-safe (single global).
+    - In Jupyter, gets updated as cells run; in a script, only after the
+      first `plot.show()` / `print_plot()` / `set_last_plot()`.
+
+  See `set_last_plot` for the WARNING about global mutation.
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: "GGPlot | None"
+next:
+  - ggplot2_py.ggsave
+failure_fixes:
+  - when: "last_plot() returns None"
+    suggest:
+      - "Either no plot has been displayed yet (call print_plot(p) first), or set_last_plot was cleared. Display a plot or pass the plot explicitly to ggsave."
+  - when: "want the plot from a different thread / process"
+    suggest:
+      - "Don't use last_plot — it's a per-process global. Pass plots explicitly across thread/process boundaries."
+  - when: "ggsave saves a stale plot"
+    suggest:
+      - "last_plot is the LAST one displayed, not necessarily the one you mean. Always prefer ggsave(filename, plot=p) over the implicit form."
+examples:
+  - "p = last_plot()  # None until something is displayed"
+  - "ggsave('out.png')  # uses last_plot() implicitly"
+tested_on: "ggplot2-python@4.0.2.9000"

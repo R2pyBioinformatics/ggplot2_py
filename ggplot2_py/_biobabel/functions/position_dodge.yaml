@@ -1,0 +1,32 @@
+# Auto-generated stub for ggplot2_py.position_dodge.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.position_dodge
+import_path: ggplot2_py.position_dodge
+execution_class: builder
+intent: []
+description: Create a dodge position adjustment.
+parameters:
+- name: width
+  type: Optional[float]
+  required: false
+  default: null
+- name: preserve
+  type: str
+  required: false
+  default: total
+- name: orientation
+  type: str
+  required: false
+  default: x
+- name: reverse
+  type: bool
+  required: false
+  default: false
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: PositionDodge
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

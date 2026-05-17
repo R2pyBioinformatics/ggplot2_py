@@ -1,0 +1,16 @@
+# Auto-generated stub for ggplot2_py.list_extensions.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.list_extensions
+import_path: ggplot2_py.list_extensions
+execution_class: stateless
+intent: []
+description: Return previously discovered extensions (without re-scanning).
+parameters: []
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: Dict[str, List[str]]
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''

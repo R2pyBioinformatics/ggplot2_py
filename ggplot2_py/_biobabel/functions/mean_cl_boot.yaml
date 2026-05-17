@@ -1,0 +1,28 @@
+# Auto-generated stub for ggplot2_py.mean_cl_boot.
+# Review and fill: intent, requires, writes, returns_kind, next, failure_fixes.
+id: ggplot2_py.mean_cl_boot
+import_path: ggplot2_py.mean_cl_boot
+execution_class: stateless
+intent: []
+description: Compute bootstrapped confidence interval of the mean.
+parameters:
+- name: x
+  type: np.ndarray
+  required: true
+  default: null
+- name: confidence
+  type: float
+  required: false
+  default: 0.95
+- name: B
+  type: int
+  required: false
+  default: 1000
+requires: {}
+writes: {}
+returns_kind: value
+returns_type: pd.DataFrame
+next: []
+failure_fixes: []
+examples: []
+tested_on: ''
